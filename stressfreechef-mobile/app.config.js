@@ -2,7 +2,7 @@ import "dotenv/config";
 
 export default {
   expo: {
-    name: "Stress Free Chef",
+    name: "Nákupní seznam",
     slug: "stressfreechef-mobile",
     version: "1.0.0",
     orientation: "portrait",

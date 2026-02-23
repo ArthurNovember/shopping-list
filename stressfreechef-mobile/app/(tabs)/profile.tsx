@@ -2,13 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -17,12 +13,29 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Video, ResizeMode } from "expo-av";
+
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { t, Lang, LANG_KEY } from "../../i18n/strings";
 import { API_BASE, fetchJSON } from "../../lib/api";
 import { useTheme } from "../../theme/ThemeContext";
+
+import { useLang } from "../../i18n/LanguageContext";
+
+/* =========================
+   CONSTS + STORAGE
+========================= */
+
+/* =========================
+   HELPERS 
+========================= */
+function pickCancelText(lang: "en" | "cs") {
+  return lang === "cs" ? "Zrušit" : "Cancel";
+}
+
+function pickDeleteText(lang: "en" | "cs") {
+  return lang === "cs" ? "Smazat" : "Delete";
+}
 
 /* =========================
    TYPES
@@ -110,47 +123,6 @@ async function loadLang(): Promise<Lang> {
   }
 }
 
-async function addIngredientToShopping(ingredient: string, lang: Lang) {
-  const trimmed = ingredient.trim();
-  if (!trimmed) return;
-
-  try {
-    const token = await getToken();
-    if (!token) {
-      Alert.alert(
-        t(lang, "home", "loginRequiredTitle"),
-        t(lang, "home", "loginRequiredMsg")
-      );
-      return;
-    }
-
-    const res = await fetch(`${BASE}/api/shopping-list`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ text: trimmed, shop: [] }),
-    });
-
-    let data: any = null;
-    try {
-      data = await res.json();
-    } catch {}
-
-    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-
-    Alert.alert(
-      t(lang, "profile", "addedTitle"),
-      lang === "cs"
-        ? `"${trimmed}" bylo přidáno do nákupního seznamu.`
-        : `"${trimmed}" was added to your shopping list.`
-    );
-  } catch (e: any) {
-    Alert.alert("Failed to add", e?.message || String(e));
-  }
-}
-
 async function fetchMe(token: string): Promise<ActionResult<any>> {
   try {
     const me = await fetchJSON(`${BASE}/api/me`, {
@@ -164,7 +136,7 @@ async function fetchMe(token: string): Promise<ActionResult<any>> {
 
 async function fetchMyRecipesPage(
   token: string,
-  page: number
+  page: number,
 ): Promise<ActionResult<PagedResponse<RecipeLike>>> {
   try {
     const res = await fetchJSON<PagedResponse<RecipeLike>>(
@@ -174,7 +146,7 @@ async function fetchMyRecipesPage(
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     return {
@@ -192,7 +164,7 @@ async function fetchMyRecipesPage(
 
 async function fetchSavedRecipesPage(
   token: string,
-  page: number
+  page: number,
 ): Promise<ActionResult<PagedResponse<RecipeLike>>> {
   try {
     const res = await fetchJSON<PagedResponse<RecipeLike>>(
@@ -202,7 +174,7 @@ async function fetchSavedRecipesPage(
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     return {
@@ -213,48 +185,6 @@ async function fetchSavedRecipesPage(
         pages: Number(res?.pages) || 1,
       },
     };
-  } catch (e: any) {
-    return { ok: false, error: e?.message || String(e) };
-  }
-}
-
-async function deleteMyRecipe(
-  token: string,
-  id: string
-): Promise<ActionResult<true>> {
-  try {
-    const res = await fetch(`${BASE}/api/my-recipes/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      const txt = await res.text();
-      return { ok: false, error: `HTTP ${res.status}: ${txt.slice(0, 200)}` };
-    }
-
-    return { ok: true, data: true };
-  } catch (e: any) {
-    return { ok: false, error: e?.message || String(e) };
-  }
-}
-
-async function removeSavedRecipe(
-  token: string,
-  id: string
-): Promise<ActionResult<true>> {
-  try {
-    const res = await fetch(`${BASE}/api/saved-community-recipes/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok && res.status !== 204) {
-      const txt = await res.text();
-      return { ok: false, error: `HTTP ${res.status}: ${txt.slice(0, 200)}` };
-    }
-
-    return { ok: true, data: true };
   } catch (e: any) {
     return { ok: false, error: e?.message || String(e) };
   }
@@ -355,14 +285,14 @@ function AuthFormRN({
 
       Alert.alert(
         t(lang, "profile", "registrationSuccessfulTitle"),
-        t(lang, "profile", "registrationSuccessfulMsg")
+        t(lang, "profile", "registrationSuccessfulMsg"),
       );
 
       setMode("login");
     } catch (e: any) {
       Alert.alert(
         t(lang, "profile", "registrationFailedTitle"),
-        e?.message || String(e)
+        e?.message || String(e),
       );
     } finally {
       setBusy(false);
@@ -390,7 +320,7 @@ function AuthFormRN({
     } catch (e: any) {
       Alert.alert(
         t(lang, "profile", "loginFailedTitle"),
-        e?.message || String(e)
+        e?.message || String(e),
       );
     } finally {
       setBusy(false);
@@ -591,34 +521,119 @@ function AuthFormRN({
    PROFILE 
 ========================= */
 
-function MyProfileRN({
-  onLoggedOut,
-  lang,
-}: {
-  onLoggedOut: () => void;
-  lang: Lang;
-}) {
-  const { colors } = useTheme();
-
+function MyProfileRN({ onLoggedOut }: { onLoggedOut: () => void; lang: Lang }) {
   const [user, setUser] = useState<any>(null);
   const [selected, setSelected] = useState<any | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const [savedItems, setSavedItems] = useState<any[]>([]);
-  const [savedPage, setSavedPage] = useState(1);
-  const [savedPages, setSavedPages] = useState(1);
-  const [savedLoadingMore, setSavedLoadingMore] = useState(false);
+  const { theme, setTheme, colors } = useTheme();
+  const { lang, setLang } = useLang();
 
-  const [myItems, setMyItems] = useState<any[]>([]);
-  const [myPage, setMyPage] = useState(1);
-  const [myPages, setMyPages] = useState(1);
-  const [myLoadingMore, setMyLoadingMore] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+
+  /* =========================
+     EFFECTS
+  ========================= */
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem(TOKEN_KEY);
+
+        if (cancelled) return;
+
+        setHasToken(!!token);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* =========================
+     HELPERS
+  ========================= */
+  const handleThemeChange = useCallback(
+    async (next: "light" | "dark") => {
+      await setTheme(next);
+    },
+    [setTheme],
+  );
+
+  const handleLangChange = useCallback(
+    async (next: "en" | "cs") => {
+      await setLang(next);
+    },
+    [setLang],
+  );
+
+  const actuallyDeleteProfile = useCallback(async () => {
+    try {
+      setDeleting(true);
+
+      const token = await getToken();
+      if (!token) {
+        Alert.alert(
+          t(lang, "settings", "notLoggedInTitle"),
+          t(lang, "settings", "notLoggedInMsg"),
+        );
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/account`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok && res.status !== 204) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      await clearToken();
+      setHasToken(false);
+
+      Alert.alert(
+        t(lang, "settings", "deletedTitle"),
+        t(lang, "settings", "deletedMsg"),
+      );
+
+      router.replace("/(tabs)/home");
+    } catch (e: any) {
+      Alert.alert(
+        t(lang, "settings", "deleteFailedTitle"),
+        e?.message || String(e),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }, [lang]);
+
+  const confirmDeleteProfile = useCallback(() => {
+    Alert.alert(
+      t(lang, "settings", "confirmDeleteTitle"),
+      t(lang, "settings", "confirmDeleteMessage"),
+      [
+        { text: pickCancelText(lang), style: "cancel" },
+        {
+          text: pickDeleteText(lang),
+          style: "destructive",
+          onPress: actuallyDeleteProfile,
+        },
+      ],
+    );
+  }, [lang, actuallyDeleteProfile]);
 
   const selectedCover = useMemo(
     () => (selected ? getCover(selected) : null),
-    [selected]
+    [selected],
   );
 
   const logout = useCallback(async () => {
@@ -638,14 +653,6 @@ function MyProfileRN({
       if (meRes.ok) setUser(meRes.data);
       else setUser(null);
 
-      setSavedPage(1);
-      setSavedPages(1);
-      setSavedItems([]);
-
-      setMyPage(1);
-      setMyPages(1);
-      setMyItems([]);
-
       const [savedRes, myRes] = await Promise.all([
         fetchSavedRecipesPage(token, 1),
         fetchMyRecipesPage(token, 1),
@@ -653,12 +660,6 @@ function MyProfileRN({
 
       if (!savedRes.ok) throw new Error(savedRes.error);
       if (!myRes.ok) throw new Error(myRes.error);
-
-      setSavedItems(savedRes.data.items || []);
-      setSavedPages(savedRes.data.pages || 1);
-
-      setMyItems(myRes.data.items || []);
-      setMyPages(myRes.data.pages || 1);
     } catch (e: any) {
       if (isUnauthorizedError(e)) {
         await clearToken();
@@ -674,125 +675,8 @@ function MyProfileRN({
   useFocusEffect(
     useCallback(() => {
       loadAll();
-    }, [loadAll])
+    }, [loadAll]),
   );
-
-  const loadMoreSaved = useCallback(async () => {
-    if (savedLoadingMore) return;
-    if (savedPage >= savedPages) return;
-
-    try {
-      setSavedLoadingMore(true);
-      const token = await getToken();
-      const nextPage = savedPage + 1;
-
-      const res = await fetchSavedRecipesPage(token, nextPage);
-      if (!res.ok) throw new Error(res.error);
-
-      setSavedItems((prev) => [...prev, ...(res.data.items || [])]);
-      setSavedPage(nextPage);
-      setSavedPages(res.data.pages || 1);
-    } catch (e: any) {
-      console.log("Load more saved failed:", e?.message || String(e));
-    } finally {
-      setSavedLoadingMore(false);
-    }
-  }, [savedLoadingMore, savedPage, savedPages]);
-
-  const loadMoreMy = useCallback(async () => {
-    if (myLoadingMore) return;
-    if (myPage >= myPages) return;
-
-    try {
-      setMyLoadingMore(true);
-      const token = await getToken();
-      const nextPage = myPage + 1;
-
-      const res = await fetchMyRecipesPage(token, nextPage);
-      if (!res.ok) throw new Error(res.error);
-
-      setMyItems((prev) => [...prev, ...(res.data.items || [])]);
-      setMyPage(nextPage);
-      setMyPages(res.data.pages || 1);
-    } catch (e: any) {
-      console.log("Load more my failed:", e?.message || String(e));
-    } finally {
-      setMyLoadingMore(false);
-    }
-  }, [myLoadingMore, myPage, myPages]);
-
-  const confirmDeleteMy = useCallback(
-    (id: string) => {
-      Alert.alert(
-        t(lang, "profile", "deleteRecipeTitle"),
-        t(lang, "profile", "deleteRecipeMsg"),
-        [
-          { text: t(lang, "profile", "cancel"), style: "cancel" },
-          {
-            text: t(lang, "profile", "delete"),
-            style: "destructive",
-            onPress: async () => {
-              try {
-                const token = await getToken();
-                const res = await deleteMyRecipe(token, id);
-                if (!res.ok) throw new Error(res.error);
-
-                setMyItems((prev) => prev.filter((r) => String(r?._id) !== id));
-              } catch (e: any) {
-                Alert.alert("Deletion failed", e?.message || String(e));
-              }
-            },
-          },
-        ]
-      );
-    },
-    [lang]
-  );
-
-  const confirmRemoveSaved = useCallback(
-    (id: string) => {
-      Alert.alert(t(lang, "profile", "removeSavedTitle"), "", [
-        { text: t(lang, "profile", "cancel"), style: "cancel" },
-        {
-          text: t(lang, "profile", "remove"),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const token = await getToken();
-              const res = await removeSavedRecipe(token, id);
-              if (!res.ok) throw new Error(res.error);
-
-              setSavedItems((prev) =>
-                prev.filter((r) => String(r?._id || r?.id) !== id)
-              );
-            } catch (e: any) {
-              Alert.alert(
-                t(lang, "profile", "removeFailedTitle"),
-                e?.message || String(e)
-              );
-            }
-          },
-        },
-      ]);
-    },
-    [lang]
-  );
-
-  const openDetailFromModal = useCallback(() => {
-    if (!selected) return;
-
-    const rid = String(selected?._id || selected?.id || "");
-    router.push({
-      pathname: "/recipe/[id]",
-      params: {
-        id: rid,
-        recipe: JSON.stringify(selected),
-        source: "profile",
-      },
-    });
-
-    setSelected(null);
-  }, [selected]);
 
   if (loading) {
     return (
@@ -828,313 +712,214 @@ function MyProfileRN({
   }
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 15 }}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={styles.profileHeader}>
         <View style={{ flex: 1 }} />
+
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <Pressable
-            onPress={logout}
-            style={[
-              styles.secondaryBtn,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
+          <View
+            style={[styles.container, { backgroundColor: colors.background }]}
           >
-            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-              {t(lang, "profile", "logout")}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        {t(lang, "profile", "savedRecipesTitle")}
-      </Text>
-
-      {savedItems.length === 0 ? (
-        <Text
-          style={{ opacity: 0.7, paddingHorizontal: 16, color: colors.muted }}
-        >
-          {t(lang, "profile", "savedEmpty")}
-        </Text>
-      ) : null}
-
-      <FlatList
-        data={savedItems}
-        horizontal
-        onEndReached={loadMoreSaved}
-        onEndReachedThreshold={0.6}
-        keyExtractor={(r, idx) => String(r?._id || r?.id || idx)}
-        contentContainerStyle={{ padding: 12, gap: 12 }}
-        ListFooterComponent={
-          savedLoadingMore ? (
-            <ActivityIndicator style={{ marginHorizontal: 12 }} />
-          ) : null
-        }
-        renderItem={({ item }) => {
-          const cover = getCover(item);
-          const rid = String(item?._id || item?.id || "");
-
-          return (
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <Pressable
-                style={{ flex: 1, flexDirection: "row" }}
-                onPress={() => setSelected(item)}
-              >
-                {cover.isVideo ? (
-                  <Video
-                    source={{ uri: cover.url }}
-                    style={styles.cardImg}
-                    resizeMode={ResizeMode.COVER}
-                    isMuted
-                    isLooping
-                    shouldPlay
-                  />
-                ) : (
-                  <Image source={{ uri: cover.url }} style={styles.cardImg} />
-                )}
-
-                <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                  <Text
-                    style={[styles.cardTitle, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {item?.title || "Untitled"}
-                  </Text>
-
-                  <Text
-                    style={[styles.metaText, { color: colors.secondaryText }]}
-                  >
-                    {t(lang, "home", "difficulty")}:{" "}
-                    {translateDifficulty(lang, item?.difficulty || "—")}
-                  </Text>
-
-                  <Text
-                    style={[styles.metaText, { color: colors.secondaryText }]}
-                  >
-                    {t(lang, "home", "time")}: {item?.time || "—"} ⏱️
-                  </Text>
-
-                  <StarRatingDisplay
-                    value={item?.ratingAvg ?? item?.rating ?? 0}
-                    count={item?.ratingCount}
-                    textColor={colors.secondaryText}
-                  />
-                </View>
-              </Pressable>
-
-              <Pressable
-                onPress={() => confirmRemoveSaved(rid)}
-                style={styles.iconBtn}
-              >
-                <MaterialIcons name="close" size={18} color={colors.text} />
+            <View style={styles.headerRow}>
+              <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                <MaterialIcons
+                  name="arrow-back"
+                  size={24}
+                  color={colors.text}
+                />
               </Pressable>
             </View>
-          );
-        }}
-      />
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        {t(lang, "profile", "myRecipesTitle")}
-      </Text>
-
-      {myItems.length === 0 ? (
-        <Text
-          style={{ opacity: 0.7, paddingHorizontal: 16, color: colors.muted }}
-        >
-          {t(lang, "profile", "myEmpty")}
-        </Text>
-      ) : null}
-
-      <FlatList
-        data={myItems}
-        onEndReached={loadMoreMy}
-        onEndReachedThreshold={0.6}
-        keyExtractor={(r) => String(r?._id || r?.id)}
-        contentContainerStyle={{ padding: 12, gap: 12 }}
-        ListFooterComponent={
-          myLoadingMore ? (
-            <ActivityIndicator style={{ marginVertical: 12 }} />
-          ) : null
-        }
-        renderItem={({ item }) => {
-          const cover = getCover(item);
-          const rid = String(item?._id || item?.id || "");
-
-          return (
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <Pressable
-                style={{ flex: 1, flexDirection: "row" }}
-                onPress={() => setSelected(item)}
+            <View style={styles.section}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.secondaryText ?? colors.text },
+                ]}
               >
-                {cover.isVideo ? (
-                  <Video
-                    source={{ uri: cover.url }}
-                    style={styles.cardImg}
-                    resizeMode={ResizeMode.COVER}
-                    isMuted
-                    isLooping
-                    shouldPlay
-                  />
-                ) : (
-                  <Image source={{ uri: cover.url }} style={styles.cardImg} />
-                )}
-
-                <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                  <Text
-                    style={[styles.cardTitle, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {item?.title || "Untitled"}
-                  </Text>
-
-                  <Text
-                    style={[styles.metaText, { color: colors.secondaryText }]}
-                  >
-                    {t(lang, "home", "difficulty")}:{" "}
-                    {translateDifficulty(lang, item?.difficulty || "—")}
-                  </Text>
-
-                  <Text
-                    style={[styles.metaText, { color: colors.secondaryText }]}
-                  >
-                    {t(lang, "home", "time")}: {item?.time || "—"} ⏱️
-                  </Text>
-
-                  <StarRatingDisplay
-                    value={item?.ratingAvg ?? item?.rating ?? 0}
-                    count={item?.ratingCount}
-                    textColor={colors.secondaryText}
-                  />
-                </View>
-              </Pressable>
-
-              <Pressable
-                onPress={() => confirmDeleteMy(rid)}
-                style={styles.iconBtn}
-              >
-                <MaterialIcons name="close" size={18} color={colors.text} />
-              </Pressable>
-            </View>
-          );
-        }}
-      />
-
-      <Modal
-        visible={!!selected}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelected(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
-              {selectedCover?.isVideo ? (
-                <Video
-                  source={{ uri: selectedCover.url }}
-                  style={styles.modalImg}
-                  resizeMode={ResizeMode.CONTAIN}
-                  useNativeControls
-                  shouldPlay
-                />
-              ) : (
-                <Image
-                  source={{ uri: selectedCover?.url || selected?.imgSrc }}
-                  style={styles.modalImg}
-                />
-              )}
-
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {selected?.title}
+                {t(lang, "settings", "themeTitle")}
               </Text>
 
-              {(typeof selected?.ratingAvg === "number" ||
-                typeof selected?.rating === "number") && (
-                <StarRatingDisplay
-                  value={selected?.ratingAvg ?? selected?.rating ?? 0}
-                  count={selected?.ratingCount}
-                  size={20}
-                  textColor={colors.secondaryText}
-                />
-              )}
-
-              {selected?.ingredients?.length ? (
-                <>
-                  <Text style={[styles.section, { color: colors.pillActive }]}>
-                    {t(lang, "profile", "ingredients")}
+              <View style={styles.row}>
+                <Pressable
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                    theme === "dark" && {
+                      backgroundColor: colors.pillActive,
+                      borderColor: colors.pillActive,
+                    },
+                  ]}
+                  onPress={() => handleThemeChange("dark")}
+                >
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: colors.text },
+                      theme === "dark" && styles.pillTextActive,
+                    ]}
+                  >
+                    {t(lang, "settings", "themeDark")}
                   </Text>
+                </Pressable>
 
-                  {selected.ingredients.map((ing: string, i: number) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.ingredientRow,
-                        { borderColor: colors.border },
-                      ]}
-                    >
-                      <Text style={[styles.ingredient, { color: colors.text }]}>
-                        • {ing}
+                <Pressable
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                    theme === "light" && {
+                      backgroundColor: colors.pillActive,
+                      borderColor: colors.pillActive,
+                    },
+                  ]}
+                  onPress={() => handleThemeChange("light")}
+                >
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: colors.text },
+                      theme === "light" && styles.pillTextActive,
+                    ]}
+                  >
+                    {t(lang, "settings", "themeLight")}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.secondaryText ?? colors.text },
+                ]}
+              >
+                {t(lang, "settings", "langTitle")}
+              </Text>
+
+              <View style={styles.row}>
+                <Pressable
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                    lang === "en" && {
+                      backgroundColor: colors.pillActive,
+                      borderColor: colors.pillActive,
+                    },
+                  ]}
+                  onPress={() => handleLangChange("en")}
+                >
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: colors.text },
+                      lang === "en" && styles.pillTextActive,
+                    ]}
+                  >
+                    English
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                    lang === "cs" && {
+                      backgroundColor: colors.pillActive,
+                      borderColor: colors.pillActive,
+                    },
+                  ]}
+                  onPress={() => handleLangChange("cs")}
+                >
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: colors.text },
+                      lang === "cs" && styles.pillTextActive,
+                    ]}
+                  >
+                    Čeština
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {hasToken && (
+              <View style={styles.section}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: colors.secondaryText ?? colors.text },
+                  ]}
+                >
+                  {t(lang, "settings", "dangerTitle")}
+                </Text>
+
+                <Pressable
+                  style={[
+                    styles.deleteBtn,
+                    {
+                      backgroundColor: "#962626ff",
+                      opacity: deleting ? 0.7 : 1,
+                    },
+                  ]}
+                  onPress={confirmDeleteProfile}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <>
+                      <MaterialIcons
+                        name="delete-forever"
+                        size={20}
+                        color="#fff"
+                      />
+                      <Text style={styles.deleteBtnText}>
+                        {t(lang, "settings", "deleteBtn")}
                       </Text>
+                    </>
+                  )}
+                </Pressable>
 
-                      <Pressable
-                        style={[
-                          styles.ingredientAddBtn,
-                          { backgroundColor: colors.pillActive },
-                        ]}
-                        onPress={() => addIngredientToShopping(ing, lang)}
-                      >
-                        <MaterialIcons
-                          name="add-shopping-cart"
-                          size={18}
-                          color="#ffffff"
-                        />
-                      </Pressable>
-                    </View>
-                  ))}
-                </>
-              ) : null}
-
-              <Pressable
-                style={[
-                  styles.primaryBtn,
-                  { backgroundColor: colors.pillActive },
-                ]}
-                onPress={openDetailFromModal}
-              >
-                <Text style={[styles.primaryBtnText, { color: "white" }]}>
-                  {t(lang, "profile", "getStarted")}
+                <Text style={[styles.helper, { color: colors.muted }]}>
+                  {t(lang, "settings", "dangerHelper")}
                 </Text>
-              </Pressable>
-
-              <Pressable
-                style={[
-                  styles.secondaryBtn,
-                  {
-                    backgroundColor: colors.border,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={() => setSelected(null)}
-              >
-                <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-                  {t(lang, "profile", "close")}
-                </Text>
-              </Pressable>
-            </ScrollView>
+              </View>
+            )}
           </View>
         </View>
-      </Modal>
+      </View>
+      <View style={{ display: "flex", alignItems: "center" }}>
+        <Pressable
+          onPress={logout}
+          style={[
+            styles.secondaryBtn,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              marginTop: 30,
+              width: "90%",
+            },
+          ]}
+        >
+          <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+            {t(lang, "profile", "logout")}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -1301,5 +1086,58 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     alignSelf: "flex-start",
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  backBtn: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+  },
+
+  row: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  pillText: {
+    fontWeight: "600",
+  },
+  pillTextActive: {
+    color: "#ffffff",
+  },
+  helper: {
+    marginTop: 6,
+    fontSize: 12,
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  deleteBtnText: {
+    color: "#ffffff",
+    fontWeight: "700",
   },
 });

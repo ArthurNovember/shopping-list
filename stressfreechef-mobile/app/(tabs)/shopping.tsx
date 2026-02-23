@@ -62,6 +62,44 @@ type FavoriteItem = {
 };
 
 /* =========================
+   CONSTS + STORAGE
+========================= */
+
+const VOICE_ENABLED_KEY = "settings:voiceEnabled";
+const OLD_BLOW_NEXT_KEY = "settings:blowNextEnabled";
+
+async function clearToken() {
+  try {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch {}
+}
+
+async function loadVoiceEnabled(): Promise<boolean> {
+  try {
+    const stored = await AsyncStorage.getItem(VOICE_ENABLED_KEY);
+    if (stored === "1" || stored === "0") return stored === "1";
+    // ⤵️ migrace ze starého klíče (jen pokud nový ještě neexistuje)
+    const old = await AsyncStorage.getItem(OLD_BLOW_NEXT_KEY);
+    const migrated = old === "1";
+    await AsyncStorage.setItem(VOICE_ENABLED_KEY, migrated ? "1" : "0");
+    return migrated;
+  } catch {
+    return false;
+  }
+}
+
+/* =========================
+   HELPERS 
+========================= */
+function pickCancelText(lang: "en" | "cs") {
+  return lang === "cs" ? "Zrušit" : "Cancel";
+}
+
+function pickDeleteText(lang: "en" | "cs") {
+  return lang === "cs" ? "Smazat" : "Delete";
+}
+
+/* =========================
    CONSTS
 ========================= */
 
@@ -843,7 +881,7 @@ export default function ShoppingScreen() {
 
               {hasToken && shopOptions.length > 0 && (
                 <View style={{ marginTop: 8 }}>
-                  <Text style={[styles.label, { color: "white" }]}>
+                  <Text style={[styles.label, { color: colors.text }]}>
                     {t(lang, "shopping", "shopsForItem")}
                   </Text>
 

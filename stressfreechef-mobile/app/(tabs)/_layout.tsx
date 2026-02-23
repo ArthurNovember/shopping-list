@@ -26,36 +26,6 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="home"
-        options={{
-          title: t(lang, "tabs", "home"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: t(lang, "tabs", "community"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="NewRecipe"
-        options={{
-          title: t(lang, "tabs", "addRecipe"),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="shopping"
         options={{
           title: t(lang, "tabs", "shopping"),
