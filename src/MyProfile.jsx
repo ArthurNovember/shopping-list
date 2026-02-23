@@ -1,0 +1,717 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import "./MyRecipes.css";
+import { Link } from "react-router-dom";
+import { deleteMyRecipe } from "./api";
+import StarRating from "./StarRating";
+import { MdAddShoppingCart } from "react-icons/md";
+
+/* -----------------------------
+   API config
+----------------------------- */
+const DEPLOYED_BACKEND_URL = "https://stressfreecheff-backend.onrender.com";
+const RAW_BASE =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
+  DEPLOYED_BACKEND_URL;
+
+const API_BASE = String(RAW_BASE || "").replace(/\/+$/, "");
+
+const MY_API_URL = `${API_BASE}/api/my-recipes`;
+const SAVED_API_URL = `${API_BASE}/api/saved-community-recipes`;
+
+/* -----------------------------
+   Media helpers 
+----------------------------- */
+const PLACEHOLDER_IMG = "https://i.imgur.com/CZaFjz2.png";
+
+const isVideoFormat = (fmt = "", url = "") => {
+  const f = String(fmt || "")
+    .toLowerCase()
+    .trim();
+  return (
+    ["mp4", "webm", "mov", "m4v"].includes(f) ||
+    /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(url || ""))
+  );
+};
+
+const findFirstImageStepSrc = (steps = []) => {
+  if (!Array.isArray(steps)) return "";
+  const s = steps.find((x) => x?.type === "image" && x?.src);
+  return s?.src || "";
+};
+
+const findAnyStepSrc = (steps = []) => {
+  if (!Array.isArray(steps)) return "";
+  const s = steps.find((x) => x?.src);
+  return s?.src || "";
+};
+
+const getCover = (r) => {
+  const url =
+    r?.image?.url ||
+    r?.imgSrc ||
+    findFirstImageStepSrc(r?.steps) ||
+    findAnyStepSrc(r?.steps) ||
+    "";
+
+  const fmt = r?.image?.format || "";
+  const isVideo = isVideoFormat(fmt, url);
+
+  return { url: url || PLACEHOLDER_IMG, isVideo };
+};
+
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+/* -----------------------------
+   Component
+----------------------------- */
+const MyProfile = ({ userInfo, addItem }) => {
+  /* =============================
+     States
+  ============================= */
+  const [items, setItems] = useState([]);
+  const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 12;
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [communityRatings, setCommunityRatings] = useState({});
+
+  const [savedItems, setSavedItems] = useState([]);
+  const [savedPage, setSavedPage] = useState(1);
+  const [savedPages, setSavedPages] = useState(1);
+  const [savedTotal, setSavedTotal] = useState(0);
+  const [savedLoading, setSavedLoading] = useState(false);
+
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+
+  const selectedMedia = useMemo(() => {
+    if (!selectedRecipe) return null;
+    return getCover(selectedRecipe);
+  }, [selectedRecipe]);
+
+  /* =============================
+     Refs – Infinite scroll
+  ============================= */
+  const myLoadMoreRef = useRef(null);
+  const myFetchingMoreRef = useRef(false);
+
+  const savedLoadMoreRef = useRef(null);
+  const savedFetchingMoreRef = useRef(false);
+
+  /* =============================
+     Handlers
+  ============================= */
+  function handleLogout() {
+    localStorage.removeItem("token");
+    window.location.href = "/AuthForm";
+  }
+
+  async function handleDeleteAccount() {
+    const sure = window.confirm(
+      "This will permanently delete your account, recipes, shopping list and favorites. This action cannot be undone. Do you want to continue?",
+    );
+    if (!sure) return;
+
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/account`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok && res.status !== 204) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      localStorage.removeItem("token");
+      window.location.href = "/AuthForm";
+    } catch (e) {
+      alert("Account deletion failed: " + (e?.message || e));
+    }
+  }
+
+  async function handleDeleteMyRecipe(recipeId) {
+    if (!window.confirm("Do you really want to delete this recipe?")) return;
+
+    try {
+      await deleteMyRecipe(recipeId);
+
+      setItems((prev) => prev.filter((r) => r._id !== recipeId));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err) {
+      alert("Deletion failed: " + (err?.message || err));
+    }
+  }
+
+  async function handleRemoveSaved(id) {
+    if (!window.confirm("Remove this recipe from your saved recipes?")) return;
+
+    try {
+      const token = getToken();
+      const res = await fetch(`${SAVED_API_URL}/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok && res.status !== 204) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      setSavedItems((prev) =>
+        prev.filter((r) => String(r?._id || r?.id) !== String(id)),
+      );
+      setSavedTotal((t) => Math.max(0, t - 1));
+    } catch (e) {
+      alert("Removing saved recipe failed: " + (e?.message || e));
+    }
+  }
+
+  function openModal(recipe) {
+    setSelectedRecipe(recipe);
+  }
+
+  function closeModal() {
+    setSelectedRecipe(null);
+  }
+
+  /* =============================
+     Effects 
+  ============================= */
+  useEffect(() => {
+    document.body.style.overflow = selectedRecipe ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [selectedRecipe]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    setItems([]);
+    setPage(1);
+    myFetchingMoreRef.current = false;
+  }, [debouncedQ]);
+
+  useEffect(() => {
+    let aborted = false;
+
+    const fetchSaved = async () => {
+      setSavedLoading(true);
+
+      const token = getToken();
+      if (!token) {
+        if (!aborted) {
+          setSavedItems([]);
+          setSavedTotal(0);
+          setSavedPages(1);
+        }
+        savedFetchingMoreRef.current = false;
+        setSavedLoading(false);
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(savedPage));
+        params.set("limit", String(limit));
+        params.set("sort", "newest");
+
+        const res = await fetch(`${SAVED_API_URL}?${params.toString()}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const raw = await res.text();
+        if (!res.ok)
+          throw new Error(`HTTP ${res.status}: ${raw.slice(0, 200)}`);
+
+        const data = JSON.parse(raw);
+        if (aborted) return;
+
+        const next = Array.isArray(data.items) ? data.items : [];
+
+        setSavedItems((prev) => (savedPage === 1 ? next : [...prev, ...next]));
+        setSavedTotal(Number(data.total) || 0);
+        setSavedPages(Number(data.pages) || 1);
+      } catch (e) {
+        if (!aborted) {
+          console.error("Failed to load saved recipes", e);
+          setSavedItems([]);
+          setSavedTotal(0);
+          setSavedPages(1);
+        }
+      } finally {
+        if (!aborted) setSavedLoading(false);
+        savedFetchingMoreRef.current = false;
+      }
+    };
+
+    fetchSaved();
+    return () => {
+      aborted = true;
+    };
+  }, [savedPage, limit]);
+
+  useEffect(() => {
+    let aborted = false;
+
+    const fetchMine = async () => {
+      const token = getToken();
+      if (!token) {
+        setItems([]);
+        setTotal(0);
+        setPages(1);
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
+      if (debouncedQ) params.set("q", debouncedQ);
+
+      setLoading(true);
+      setErr("");
+
+      try {
+        const res = await fetch(`${MY_API_URL}?${params.toString()}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const raw = await res.text();
+        if (!res.ok)
+          throw new Error(`HTTP ${res.status}: ${raw.slice(0, 200)}`);
+
+        const data = JSON.parse(raw);
+        if (aborted) return;
+
+        const next = Array.isArray(data.items) ? data.items : [];
+
+        setItems((prev) => (page === 1 ? next : [...prev, ...next]));
+        setTotal(Number(data.total) || 0);
+        setPages(Number(data.pages) || 1);
+      } catch (e) {
+        if (!aborted) setErr(e?.message || "Failed to load recipes.");
+      } finally {
+        if (!aborted) setLoading(false);
+        myFetchingMoreRef.current = false;
+      }
+    };
+
+    fetchMine();
+    return () => {
+      aborted = true;
+    };
+  }, [page, limit, debouncedQ]);
+
+  useEffect(() => {
+    const el = myLoadMoreRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+
+        if (loading) return;
+        if (page >= pages) return;
+        if (myFetchingMoreRef.current) return;
+
+        myFetchingMoreRef.current = true;
+        setPage((p) => p + 1);
+      },
+      { root: null, rootMargin: "250px", threshold: 0.01 },
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loading, page, pages]);
+
+  useEffect(() => {
+    const el = savedLoadMoreRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+
+        if (savedLoading) return;
+        if (savedPage >= savedPages) return;
+        if (savedFetchingMoreRef.current) return;
+
+        savedFetchingMoreRef.current = true;
+        setSavedPage((p) => p + 1);
+      },
+      { root: null, rootMargin: "250px", threshold: 0.01 },
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [savedLoading, savedPage, savedPages]);
+
+  useEffect(() => {
+    const ids = Array.from(
+      new Set((items || []).map((r) => r?.publicRecipeId).filter(Boolean)),
+    );
+
+    if (ids.length === 0) {
+      setCommunityRatings({});
+      return;
+    }
+
+    let aborted = false;
+
+    (async () => {
+      try {
+        const pairs = await Promise.all(
+          ids.map(async (id) => {
+            const res = await fetch(`${API_BASE}/api/community-recipes/${id}`, {
+              headers: { Accept: "application/json" },
+            });
+            if (!res.ok) return [id, null];
+            const data = await res.json();
+            return [
+              id,
+              {
+                avg: Number(data?.ratingAvg || 0),
+                count: Number(data?.ratingCount || 0),
+              },
+            ];
+          }),
+        );
+
+        if (!aborted) {
+          setCommunityRatings(Object.fromEntries(pairs.filter(Boolean)));
+        }
+      } catch {
+        if (!aborted) setCommunityRatings({});
+      }
+    })();
+
+    return () => {
+      aborted = true;
+    };
+  }, [items]);
+
+  /* =============================
+     Loading
+  ============================= */
+  if (!userInfo) return <div>Loading...</div>;
+
+  /* =============================
+     Render
+  ============================= */
+  return (
+    <div className="myProfile">
+      <div className="deleteContainer">
+        <button className="logout" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+
+      <div className="loginButtons">
+        <div className="loginInfo"></div>
+        <div className="endButtons"></div>
+      </div>
+
+      <div className="My">
+        <div className="savedRecipes">
+          <div className="MyRecipeNewRecipe">
+            <h2 className="MyCategory">SAVED RECIPES</h2>
+          </div>
+
+          {savedItems.length === 0 && (
+            <p style={{ opacity: 0.8, marginTop: 8 }}>
+              You don’t have any saved recipes yet.
+            </p>
+          )}
+
+          <div className="recipeContainer2">
+            {savedItems.map((r) => {
+              const { url, isVideo } = getCover(r);
+              const title = r?.title || "Untitled";
+
+              const ratingValue =
+                typeof r?.ratingAvg === "number"
+                  ? r.ratingAvg
+                  : Number(r?.rating || 0);
+
+              const ratingCount =
+                typeof r?.ratingCount === "number" ? r.ratingCount : undefined;
+
+              const savedId = String(r?._id || r?.id || "");
+
+              return (
+                <div className="recipeCard2" key={savedId}>
+                  <a href="#saved" title={title}>
+                    {isVideo ? (
+                      <video
+                        src={url}
+                        onClick={() => openModal(r)}
+                        preload="metadata"
+                        playsInline
+                        muted
+                        loop
+                        autoPlay
+                        style={{
+                          width: "100%",
+                          height: 200,
+                          objectFit: "cover",
+                          borderRadius: 8,
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={url || PLACEHOLDER_IMG}
+                        onClick={() => openModal(r)}
+                        alt={title}
+                        loading="lazy"
+                        className="obrazek"
+                        style={{
+                          aspectRatio: "1/1",
+                          objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.src = PLACEHOLDER_IMG;
+                        }}
+                      />
+                    )}
+                  </a>
+
+                  <div className="texto">
+                    <h3 title={title}>{title}</h3>
+
+                    <StarRating
+                      value={ratingValue}
+                      readOnly
+                      showValue={Boolean(ratingCount)}
+                      count={ratingCount}
+                    />
+
+                    <p>Difficulty: {r?.difficulty || "—"}</p>
+                    <p>Time: {r?.time || "—"} ⏱️</p>
+                  </div>
+
+                  <img
+                    src="https://i.imgur.com/aRJEINp.png"
+                    className="deleteButton"
+                    onClick={() => handleRemoveSaved(savedId)}
+                    alt="Remove saved recipe"
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {savedLoading && savedPage > 1 && (
+            <p style={{ opacity: 0.8, marginTop: 12, textAlign: "center" }}>
+              Loading more…
+            </p>
+          )}
+
+          <div ref={savedLoadMoreRef} style={{ height: 1 }} />
+        </div>
+
+        <div className="myRecipes">
+          <div className="MyRecipeNewRecipe" style={{ gap: 12 }}>
+            <h2 className="MyCategory">MY RECIPES</h2>
+          </div>
+
+          {err && (
+            <p
+              style={{ color: "tomato", marginTop: 8, whiteSpace: "pre-wrap" }}
+            >
+              {err}
+            </p>
+          )}
+          {loading && <p style={{ opacity: 0.8, marginTop: 8 }}>Loading…</p>}
+          {!loading && !err && items.length === 0 && (
+            <p style={{ opacity: 0.8, marginTop: 8 }}>
+              You don’t have any recipes yet. Add your first one!
+            </p>
+          )}
+
+          <div className="recipeContainer2">
+            {items.map((r) => {
+              const { url, isVideo } = getCover(r);
+              const title = r?.title || "Untitled";
+
+              return (
+                <div className="recipeCard2" key={r?._id}>
+                  <a href="#modal" title={title}>
+                    {isVideo ? (
+                      <video
+                        src={url}
+                        onClick={() => openModal(r)}
+                        preload="metadata"
+                        playsInline
+                        muted
+                        loop
+                        autoPlay
+                        style={{
+                          width: "100%",
+                          height: 200,
+                          objectFit: "cover",
+                          borderRadius: 8,
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={url || PLACEHOLDER_IMG}
+                        onClick={() => openModal(r)}
+                        alt={title}
+                        loading="lazy"
+                        style={{
+                          width: "100%",
+                          height: 200,
+                          objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.src = PLACEHOLDER_IMG;
+                        }}
+                      />
+                    )}
+                  </a>
+
+                  <div className="texto">
+                    <h3 title={title}>{title}</h3>
+
+                    <StarRating
+                      value={
+                        r?.publicRecipeId
+                          ? (communityRatings[r.publicRecipeId]?.avg ?? 0)
+                          : Number(r?.rating || 0)
+                      }
+                      readOnly
+                      showValue={Boolean(r?.publicRecipeId)}
+                      count={
+                        r?.publicRecipeId
+                          ? communityRatings[r.publicRecipeId]?.count
+                          : undefined
+                      }
+                    />
+
+                    <p>Difficulty: {r?.difficulty || "—"}</p>
+                    <p>Time: {r?.time || "—"} ⏱️</p>
+                  </div>
+
+                  <img
+                    src="https://i.imgur.com/aRJEINp.png"
+                    className="deleteButton"
+                    onClick={() => handleDeleteMyRecipe(r._id)}
+                    alt="Delete my recipe"
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {loading && page > 1 && (
+            <p style={{ opacity: 0.8, marginTop: 12, textAlign: "center" }}>
+              Loading more…
+            </p>
+          )}
+
+          <div ref={myLoadMoreRef} style={{ height: 1 }} />
+        </div>
+      </div>
+
+      {selectedRecipe && (
+        <div className="modalOverlay" onClick={closeModal}>
+          <div
+            className="selectedRecipeContainer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "right" }}>
+              <button classname="close" onClick={() => setSelectedRecipe(null)}>
+                X
+              </button>
+            </div>
+            <div id="modal">
+              <div className="nameAndPicture">
+                <h2>{selectedRecipe.title}</h2>
+
+                {selectedMedia?.isVideo ? (
+                  <video
+                    src={selectedMedia.url || PLACEHOLDER_IMG}
+                    preload="metadata"
+                    playsInline
+                    muted
+                    loop
+                    autoPlay
+                  />
+                ) : (
+                  <img
+                    src={selectedMedia?.url || PLACEHOLDER_IMG}
+                    alt={selectedRecipe.title}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = PLACEHOLDER_IMG;
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="displayIngredience">
+                <ol>
+                  {selectedRecipe.ingredients.map((ingredient, index) => (
+                    <li key={index} className="ingredient">
+                      {ingredient}
+                      <button
+                        className="sendToList"
+                        onClick={() =>
+                          addItem({
+                            text: ingredient,
+                            shop: [],
+                          })
+                        }
+                      >
+                        <MdAddShoppingCart size={18} color="#ffffff" />
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+
+            <div id="startparent">
+              <Link
+                to="/Recipe"
+                state={{
+                  recipe: selectedRecipe,
+                  communityRecipeId:
+                    selectedRecipe?.publicRecipeId || undefined,
+                }}
+              >
+                <button className="getStarted">GET STARTED</button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer className="profileFooter">
+        <button onClick={handleDeleteAccount} className="deleteAccount">
+          Delete account
+        </button>
+      </footer>
+    </div>
+  );
+};
+
+export default MyProfile;

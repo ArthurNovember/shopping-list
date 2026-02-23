@@ -1,0 +1,312 @@
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css");
+@import url("https://fonts.googleapis.com/css2?family=Merienda:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap");
+@import url("https://fonts.cdnfonts.com/css/metropolis");
+
+body {
+  background: radial-gradient(circle at top, #301e21 0, #090505 55%);
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 80px;
+  padding: 0 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  z-index: 1000;
+}
+
+header nav {
+  position: static;
+  height: auto;
+}
+
+header nav ul {
+  display: flex;
+  list-style-type: none;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+}
+
+header nav a {
+  color: white;
+  padding: 20px 10px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+}
+
+header nav a:hover {
+  color: #730606;
+}
+
+.activeSection {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+  border-radius: 6px;
+}
+
+.Beginner {
+  color: green;
+  font-weight: bold;
+}
+.Intermediate {
+  color: orange;
+  font-weight: bold;
+}
+.Hard {
+  color: rgb(145, 41, 41);
+  font-weight: bold;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+
+  background-color: rgba(0, 0, 0, 0.6);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 1000;
+}
+
+.selectedRecipeContainer {
+  width: min(1100px, 100vw - 40px);
+  max-height: 90vh;
+  background: radial-gradient(0, #131111 55%);
+  border-radius: 20px;
+  overflow-y: auto;
+  position: relative;
+  border: 3px rgb(41, 39, 39) solid;
+}
+
+.selectedRecipeContainer h2 {
+  text-align: center;
+  padding: 15px 10px;
+  margin: 0;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.selectedRecipeContainer img,
+.selectedRecipeContainer video {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  max-height: 55vh;
+  object-fit: cover;
+
+  border-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+#modal {
+  background: radial-gradient(0, #131111 55%);
+  margin-left: auto;
+  margin-right: auto;
+
+  border-bottom: 0px;
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
+}
+
+.nameAndPicture {
+  text-align: left;
+  margin: 20px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.displayIngredience {
+  text-align: left;
+  margin: 20px;
+  flex: 1.5;
+  min-width: 260px;
+}
+
+.displayIngredience ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.displayIngredience li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style-position: inside;
+  margin-top: 10px;
+}
+
+.ingredient {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.sendToList {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px;
+}
+.sendToList:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#startparent {
+  background: radial-gradient(0, #131111 55%);
+  height: 90px;
+  margin: 0 auto;
+  border-top: 1px rgb(41, 39, 39) solid;
+}
+
+.getStarted {
+  margin-top: 18px;
+  font-weight: bold;
+  background: rgb(114, 3, 3);
+  color: white;
+  border: 0;
+  padding: 14px 22px;
+  cursor: pointer;
+}
+.getStarted:hover {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+.close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+
+  background: #222;
+  border: 1px solid #000;
+  padding: 6px 14px;
+  border-radius: 999px;
+
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saveFloatingBtn.active {
+  background: #8b0e0d;
+  border-color: #8b0e0d;
+}
+
+/* --- Mobile hamburger nav --- */
+
+.navRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* burger defaultně schovaný (desktop) */
+.burgerBtn {
+  display: none;
+  background: transparent;
+  border: 0;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.burgerLine {
+  display: block;
+  width: 22px;
+  height: 2px;
+  margin: 5px 0;
+  background: white;
+}
+
+/* původní UL zůstává jako desktop nav, jen mu dáme class */
+.navList {
+  display: flex;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* overlay */
+.navOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  border: 0;
+  z-index: 900;
+}
+
+/* Mobile layout */
+@media (max-width: 768px) {
+  header {
+    left: 0;
+    right: 0;
+    padding: 0 16px;
+    justify-content: flex-end;
+  }
+
+  .burgerBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1002;
+  }
+
+  /* menu jako "drawer" */
+  .navList {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(78vw, 320px);
+    height: 100%;
+    padding: 10px 12px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    background: rgba(10, 5, 5, 0.98);
+    transform: translateX(110%);
+    transition: transform 0.2s ease;
+
+    z-index: 1001;
+  }
+
+  .navList.open {
+    transform: translateX(0);
+  }
+
+  header nav a {
+    padding: 14px 10px;
+    justify-content: flex-start;
+  }
+}

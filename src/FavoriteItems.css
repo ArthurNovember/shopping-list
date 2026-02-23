@@ -1,0 +1,185 @@
+.itemContainer {
+  background: radial-gradient(0, #131111 55%);
+
+  min-height: 300px;
+
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px rgb(41, 39, 39) solid;
+}
+
+.itemContainer h2 {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-top: 0px;
+  border-radius: 3px;
+}
+
+.writeFavorite {
+  flex: 1;
+  height: 45px;
+  border: solid rgb(24, 24, 24) 0.1px;
+  background-color: rgb(0, 0, 0);
+  border-radius: 5px;
+  padding-left: 10px;
+}
+
+.addButton {
+  max-width: 250px;
+  margin-right: 10px;
+  margin-left: 10px;
+  background-color: #2d2d2d;
+}
+.addButton:hover {
+  background-color: #1c1c1c;
+}
+
+.itemName {
+  margin-left: 10px;
+}
+
+.FavoriteCelek h1 {
+  font-size: 32px;
+  width: 97.5%;
+  height: 30px;
+  margin: auto;
+  padding-top: 8px;
+  padding-bottom: 13px;
+  border-radius: 10px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+
+.itemContainer li {
+  background: radial-gradient(0, #291e1e 55%);
+  padding-top: 10px;
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+  padding-left: 7px;
+  padding-right: 7px;
+  border-radius: 5px;
+}
+
+.AddTopFavorite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.TopAddShop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding-top: 0;
+}
+
+.writeFavoriteShop {
+  width: 97%;
+  height: 30px;
+  border: solid rgb(114, 114, 114) 0.1px;
+  background-color: rgb(67, 67, 67);
+  border-radius: 5px;
+}
+
+.TopAddShop h2 {
+  font-size: 22px;
+  width: 97.5%;
+  height: 30px;
+  margin: auto;
+  padding-top: 8px;
+  padding-bottom: 15px;
+  border-radius: 10px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+
+.addButtonTop {
+  background-color: rgb(88, 7, 7);
+  padding: 13px 18px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addButtonTop:hover {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+.FavoriteCelek ul {
+  display: flex;
+  flex-direction: column;
+  padding: 0px;
+  padding-bottom: 10px;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.favoriteSelectAndSort {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.filterShopsFavorite {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.FavoriteCelek {
+  padding-top: 80px;
+  background: radial-gradient(circle at top, #301e21 0, #090505 55%);
+  min-height: 100vh;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.buttonAndShops {
+  position: relative;
+  display: inline-flex;
+}
+
+.buttonAndShopsInput {
+  position: relative;
+  display: inline-block;
+}
+
+form {
+  width: 100%;
+}
+
+.addToListAndDelete {
+  display: flex;
+}
+
+.favAndShop {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .FavoriteCelek {
+    padding-left: 0px;
+    padding-right: 0px;
+  }
+
+  .itemName {
+    word-break: break-word;
+  }
+}

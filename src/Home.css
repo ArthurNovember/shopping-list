@@ -1,0 +1,103 @@
+.main {
+  background: radial-gradient(circle at top, #301e21 0, #090505 55%);
+  padding-top: 40px;
+  min-height: 100vh;
+  min-width: fit-content;
+}
+
+.logoText {
+  margin: auto;
+  position: relative;
+  top: 20px;
+}
+
+.logoText p {
+  font-size: min(11vw, 88px);
+  color: rgb(238, 235, 235);
+  font-weight: 700;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.StressFree {
+  font-family: "Metropolis", sans-serif;
+  color: white;
+}
+
+.chef {
+  color: #730606;
+}
+
+.variants {
+  margin-top: 40px;
+}
+
+.variants ul.HomeUl {
+  display: flex;
+  justify-content: center;
+
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.variants a {
+  color: white;
+  text-decoration: none;
+  display: inline-block;
+
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.variants a:hover {
+  color: #a69a9a;
+}
+
+.recipeContainer {
+  background-color: rgb(19, 19, 19);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  margin-left: auto;
+  margin-right: auto;
+  padding: 14px 10px 30px;
+  gap: 22px;
+}
+
+.recipeCard {
+  flex: 0 1 260px;
+  max-width: 320px;
+
+  background: radial-gradient(circle at top, #212020 0, #161616 55%);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+.HMS {
+  width: 5vw;
+}
+.recipeCard img {
+  width: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  aspect-ratio: 1/1;
+}
+
+.recipeCard h3 {
+  color: white;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+@media (max-width: 768px) {
+  .recipeCard {
+    width: 100%;
+    flex: 100%;
+    max-width: none;
+    padding: 0;
+  }
+}

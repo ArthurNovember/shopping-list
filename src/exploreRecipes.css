@@ -1,0 +1,148 @@
+.explore {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  align-items: center;
+
+  background: radial-gradient(circle at top, #301e21 0, #090505 55%);
+  padding-top: 100px;
+  min-height: 100vh;
+}
+
+.explore h2 {
+  font-size: 40px;
+  font-family: "Metropolis", sans-serif;
+}
+
+.views {
+  margin-right: 200px;
+}
+
+.views button {
+  background-color: rgb(58, 56, 56);
+  border-radius: 0px;
+  border: solid 1px black;
+}
+
+.views button:hover {
+  background-color: rgb(102, 27, 27);
+}
+
+.searchAndViews {
+  display: flex;
+  width: 98%;
+  justify-content: center;
+}
+
+.recipeContainer1 {
+  background-color: rgb(19, 19, 19);
+  display: flex;
+  justify-content: center;
+  margin-left: 20px;
+  flex-wrap: wrap;
+  margin-right: 20px;
+  width: 100%;
+  padding-top: 30px;
+  border-radius: 5px;
+}
+
+.recipeCard1 {
+  margin: 10px;
+  background-color: rgb(28, 27, 27);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  width: 200px;
+}
+
+.recipeCard1 img {
+  border-radius: 8px;
+  aspect-ratio: 1/1;
+}
+
+.eploreinput {
+  padding-left: 5px;
+  width: 800px;
+  height: 45px;
+  border-radius: 5px;
+  border: 3px solid rgb(53, 28, 28);
+  border-right: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  background-color: rgb(20, 20, 20);
+}
+
+.searchAndViews button {
+  border-radius: 5px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  border: 3px solid rgb(53, 28, 28);
+  border-left: 0px;
+  background-color: rgb(53, 28, 28);
+  cursor: default;
+}
+.searchAndViews button {
+  outline: none;
+  padding: 0 4px 0 4px;
+}
+
+.modalOverlay video {
+  width: 70%;
+}
+
+.explorePages {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.variantsExplore {
+  margin-top: 20px;
+  padding-top: 30px;
+  border-radius: 5px;
+  width: 100%;
+}
+
+.variantsExplore a.activeSection {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+.variantsExplore ul {
+  display: flex;
+  gap: 1vw;
+  list-style: none;
+  padding-bottom: 10px;
+  margin: 0;
+  padding-left: 3vw;
+}
+
+.variantsExplore a {
+  background-color: #322222;
+  color: white;
+  text-decoration: none;
+
+  padding: min(1.5vw, 10px);
+  border-radius: 20px;
+
+  display: flex;
+
+  height: auto;
+  box-shadow: 0 0.1px 20px rgba(62, 59, 59, 0.35);
+}
+
+.variantsExplore a:hover {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+@media (max-width: 768px) {
+  .recipeCard1 {
+    width: 100%;
+    flex: 100%;
+    max-width: none;
+    padding: 0;
+  }
+}

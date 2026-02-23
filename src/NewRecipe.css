@@ -1,0 +1,412 @@
+.new {
+  padding-top: 100px;
+  background: radial-gradient(circle at top, #221618 0, #090505 55%);
+  min-height: 100vh;
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+}
+
+.new h4 {
+}
+.mainInfo {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: 50px;
+  border-bottom: 1px rgb(56, 52, 52) solid;
+  position: relative;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.mainInfo label p {
+  margin-left: 15px;
+}
+
+.mainInfo input,
+select {
+  border: 2px rgb(29, 29, 29) solid;
+  background-color: rgb(10, 10, 10);
+  padding-left: 10px;
+  border-radius: 5px;
+  margin-top: 5px;
+}
+
+.mainInfo option {
+  background-color: #181818;
+}
+
+.inputAdd {
+  display: flex;
+  justify-content: space-between;
+}
+
+.inputAdd input,
+select {
+  height: 6vh;
+  width: 100%;
+}
+
+.imagePreview {
+  height: 300px;
+  border: 5px solid #00000056;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+}
+
+.imagePreview:hover {
+  cursor: pointer;
+  border: 5px solid rgb(114, 3, 3);
+  font-weight: 600;
+
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+.imagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stepsAndIngrents ol {
+  padding-inline-start: 0px;
+}
+
+.stepsAndIngrents li {
+  text-align: left;
+  background: radial-gradient(circle at top, #1d1d1d 0, #141414 55%);
+  border: 1px solid #1b1b1b;
+  margin-top: 2%;
+  margin-left: 2%;
+  margin-right: 2%;
+  width: 96%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.stepsAndIngrents input {
+  background-color: rgb(9, 9, 9);
+  height: 40px;
+  border: solid 2px #2b2a2a;
+  border: solid 2px #2b2a2a;
+  padding-left: 10px;
+}
+
+.Ingredients {
+  padding: 20px;
+  border-bottom: 1px rgb(56, 52, 52) solid;
+
+  flex-direction: column;
+  align-items: center;
+}
+
+.photoAndButton {
+  display: flex;
+  justify-content: space-between;
+}
+
+.X {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background-color: transparent;
+  border-radius: 0px;
+}
+
+.X:hover {
+  background-color: transparent;
+  border: 0px transparent;
+}
+
+.public {
+  position: absolute;
+  top: -40px;
+  right: 10px;
+  width: 20%;
+  height: 15%;
+}
+
+.public select {
+  width: 100%;
+
+  border-radius: 5px;
+}
+
+.AddIngredient {
+  border-radius: 5px;
+  background: rgb(114, 3, 3);
+}
+
+.AddIngredient:hover {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+.addRecipe {
+  margin-top: 30px;
+  border-radius: 50%;
+  width: 10vw;
+  height: 10vw;
+  background: radial-gradient(circle at top, #201d1d 0, #0b0b0b 55%);
+  border: 1px solid #1b1b1b;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+  padding: 0.5%;
+}
+
+.addRecipe:hover {
+  filter: brightness(0.8);
+  transition: filter 0.3s ease;
+  cursor: pointer;
+}
+
+.addStep button:hover {
+  background: rgb(114, 3, 3);
+  box-shadow: 0 0.1px 20px rgba(230, 67, 67, 0.35);
+}
+
+.creation {
+  background: radial-gradient(0, #131111 55%);
+  padding-top: 50px;
+  margin-left: 30px;
+  margin-right: 30px;
+  border-radius: 20px;
+  border: 1px rgb(41, 39, 39) solid;
+}
+
+.new label {
+  display: flex;
+  align-items: center;
+  width: 25vw;
+}
+
+.Steps li {
+  display: flex;
+  flex-direction: row;
+}
+
+.Steps li {
+  align-items: flex-start;
+}
+
+.Steps textarea {
+  background-color: rgb(9, 9, 9);
+  width: 100%;
+  height: 290px;
+  min-height: 120px;
+  padding: 10px;
+  color: white;
+  resize: none;
+  text-align: left;
+  line-height: 1.4;
+  margin-left: 10px;
+  font-size: large;
+  border: 0px;
+  align-items: baseline;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.Ingredients li {
+  margin-top: 10px;
+  flex-direction: row;
+  justify-content: space-between;
+  border-radius: 10px;
+}
+
+.Ingredients input {
+  width: 100%;
+
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.StepTimerRow {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.StepTimerLabel {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.StepTimerFields {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.StepTimerField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.StepTimerField input {
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px rgb(29, 29, 29) solid;
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+.nameDifTime {
+  width: 60%;
+}
+
+/* AI Import */
+.AiImportBox {
+  border-bottom: 1px rgb(56, 52, 52) solid;
+  padding: 15px;
+}
+
+.AiImportBox label {
+  width: fit-content;
+}
+
+.AiImportHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.AiImportBtn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  cursor: pointer;
+}
+
+.AiImportTextarea {
+  width: 95%;
+  min-height: 140px;
+  resize: none;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.25);
+  color: white;
+}
+
+.AiButtonsRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.AiHint {
+  opacity: 0.85;
+
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.AiToggle {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  gap: 10px;
+  opacity: 0.9;
+}
+
+.sendButtonContainer {
+  border-top: 1px rgb(56, 52, 52) solid;
+  display: flex;
+  justify-content: right;
+  padding-right: 20px;
+  padding-bottom: 20px;
+}
+
+.uploadContainer1 {
+  width: 100%;
+}
+
+/* RESPONZIVITA */
+
+@media (max-width: 768px) {
+  .creation {
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 20px 10px;
+  }
+
+  .nameDifTime {
+    width: 100%;
+  }
+
+  .mainInfo {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    justify-content: center;
+  }
+
+  .inputAdd {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .Ingredients ol {
+    padding: 0;
+  }
+
+  .Ingredients li {
+    gap: 8px;
+  }
+
+  .Steps li {
+    flex-direction: column;
+  }
+
+  .Steps textarea {
+    margin-left: 0;
+    height: 180px;
+    font-size: 16px;
+  }
+
+  .StepTimerFields {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .photoAndButton {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .addRecipe {
+    width: 140px;
+    height: 140px;
+    margin: 20px auto;
+  }
+
+  .imagePreview {
+    min-width: 70vw;
+  }
+
+  .uploadContainer {
+    display: flex;
+    justify-content: center;
+  }
+
+  .new label {
+    width: 100%;
+  }
+
+  .HMS {
+    width: 5vw;
+  }
+}
