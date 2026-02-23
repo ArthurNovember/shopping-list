@@ -48,9 +48,7 @@ export default {
     ],
     extra: {
       apiBase: process.env.EXPO_PUBLIC_API_BASE,
-      eas: {
-        projectId: "d173f2e2-5c7e-454a-bf84-edc2dd78462a",
-      },
+      eas: { projectId: "7992f1a7-7189-4153-83e5-b0ec021f8a3c" },
     },
   },
 };
