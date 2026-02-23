@@ -3,7 +3,7 @@ import "dotenv/config";
 export default {
   expo: {
     name: "Nákupní seznam",
-    slug: "stressfreechef-mobile",
+    slug: "shopping-list",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -24,7 +24,8 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.anonymous.stressfreechefmobile",
+      package: "com.arthurnovember.shoppinglist",
+      versionCode: 1,
     },
     web: {
       favicon: "./assets/favicon.png",
