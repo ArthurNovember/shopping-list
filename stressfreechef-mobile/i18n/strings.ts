@@ -361,6 +361,14 @@ const STRINGS = {
       en: "Retry",
       cs: "Zkusit znovu",
     },
+    screenTitle: {
+      en: "Shopping list",
+      cs: "Nákupní seznam",
+    },
+    screenSubtitle: {
+      en: "Keep your shopping under control.",
+      cs: "Mějte nákupy pod kontrolou.",
+    },
     addNewItemTitle: {
       en: "SHOPPING LIST",
       cs: "NÁKUPNÍ SEZNAM",
@@ -370,12 +378,16 @@ const STRINGS = {
       cs: "Přidejte položku…",
     },
     shopsForItem: {
-      en: "Shops for this item:",
-      cs: "Obchody pro tuto položku:",
+      en: "Shops",
+      cs: "Obchody",
     },
     manageShops: {
       en: "Manage shops",
       cs: "Spravovat obchody",
+    },
+    manageShopsSubtitle: {
+      en: "Add, remove or edit shops",
+      cs: "Přidejte, odeberte nebo upravte obchody",
     },
     addShops: {
       en: "Add shops",
@@ -386,12 +398,16 @@ const STRINGS = {
       cs: "Přidat do seznamu",
     },
     filterByShop: {
-      en: "Filter by shop:",
-      cs: "Filtrovat podle obchodu:",
+      en: "Filter by shop",
+      cs: "Filtrovat podle obchodu",
     },
     all: {
       en: "All",
       cs: "Vše",
+    },
+    allStores: {
+      en: "All",
+      cs: "Všechny",
     },
     noShop: {
       en: "No shop",

@@ -1,12 +1,15 @@
-import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { t, Lang, LANG_KEY } from "../i18n/strings";
+import React, { useCallback, useMemo, useState } from "react";
+import { t } from "../i18n/strings";
+import { useLang } from "../i18n/LanguageContext";
 import { useTheme } from "../theme/ThemeContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Alert,
   BackHandler,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +21,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { API_BASE, fetchJSON } from "../lib/api";
+import { StoreIcon } from "../components/icons/StoreIcon";
+import {
+  BackArrowIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  GripIcon,
+  HeartIcon,
+  SearchIcon,
+  StorefrontIcon,
+} from "../components/icons/UiIcons";
 
 /* =========================
    TYPES
@@ -61,6 +75,7 @@ const isUnauthorizedError = (e: any) => {
 export default function FavoritesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { lang } = useLang();
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -82,18 +97,9 @@ export default function FavoritesScreen() {
 
   const [filterShopIds, setFilterShopIds] = useState<string[]>([]);
 
-  const [lang, setLang] = useState<Lang>("en");
-
   /* =========================
    Effects
 ========================= */
-
-  useEffect(() => {
-    (async () => {
-      const stored = await AsyncStorage.getItem(LANG_KEY);
-      if (stored === "cs" || stored === "en") setLang(stored);
-    })();
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -445,7 +451,7 @@ export default function FavoritesScreen() {
           ]}
           onPress={loadAll}
         >
-          <Text style={[styles.primaryBtnText, { color: colors.text }]}>
+          <Text style={styles.primaryBtnText}>
             {t(lang, "shopping", "retry")}
           </Text>
         </Pressable>
@@ -458,312 +464,386 @@ export default function FavoritesScreen() {
   ========================= */
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={styles.headerRow}>
-        <Pressable onPress={() => router.replace("/(tabs)/shopping")}>
-          <Text style={[styles.backText, { color: colors.text }]}>
-            {t(lang, "favorites", "backToShopping")}
-          </Text>
-        </Pressable>
-      </View>
-
-      <View style={{ paddingHorizontal: 12, paddingBottom: 4 }}>
-        <View
-          style={[
-            styles.newItemCard,
-            {
-              backgroundColor: colors.favorite,
-            },
-          ]}
-        >
-          <Text
-            style={{
-              color: "white",
-              fontSize: 18,
-              fontWeight: "700",
-              marginBottom: 6,
-              fontFamily: "MetropolisBold",
-            }}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 24 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.headerRow}>
+          <Pressable
+            hitSlop={8}
+            style={styles.backBtn}
+            onPress={() => router.replace("/(tabs)/shopping")}
           >
-            {t(lang, "favorites", "addFavoriteTitle")}
-          </Text>
-
-          <TextInput
-            placeholder={t(lang, "favorites", "addFavoritePlaceholder")}
-            placeholderTextColor={colors.muted}
-            value={newText}
-            onChangeText={setNewText}
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                color: colors.text,
-              },
-            ]}
-          />
-
-          {shopOptions.length > 0 && (
-            <View style={{ marginTop: 8 }}>
-              <Text style={[styles.label, { color: "white" }]}>
-                {t(lang, "shopping", "shopsForItem")}
-              </Text>
-              <View style={styles.shopsRow}>
-                {shopOptions.map((shop) => {
-                  const active = newFavoriteShopIds.includes(shop._id);
-                  return (
-                    <Pressable
-                      key={shop._id}
-                      style={[
-                        styles.chipSmall,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor: colors.border,
-                        },
-                        active && {
-                          backgroundColor: colors.pillActive,
-                          borderColor: colors.pillActive,
-                        },
-                      ]}
-                      onPress={() => {
-                        setNewFavoriteShopIds((prev) =>
-                          prev.includes(shop._id)
-                            ? prev.filter((id) => id !== shop._id)
-                            : [...prev, shop._id],
-                        );
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: colors.text },
-                          active && styles.chipTextActive,
-                        ]}
-                      >
-                        {shop.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+            <View
+              style={[
+                styles.backCircle,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <BackArrowIcon size={18} color={colors.text} />
             </View>
-          )}
-
-          <Pressable
-            style={[
-              styles.manageShopsBtn,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-            onPress={() => setManageShopsVisible(true)}
-          >
-            <Text style={[styles.manageShopsText, { color: colors.text }]}>
-              {shopOptions.length > 0
-                ? t(lang, "shopping", "manageShops")
-                : t(lang, "shopping", "addShops")}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.primaryBtn,
-              { backgroundColor: "#1a1a1aff" },
-              (!newText.trim() || savingFavorite) && { opacity: 0.6 },
-            ]}
-            onPress={handleAddFavorite}
-            disabled={!newText.trim() || savingFavorite}
-          >
-            <Text style={[styles.primaryBtnText, { color: "white" }]}>
-              {savingFavorite
-                ? t(lang, "favorites", "saving")
-                : t(lang, "favorites", "addFavoriteBtn")}
+            <Text style={[styles.backText, { color: colors.text }]}>
+              {t(lang, "favorites", "backToShopping").replace(/^[←\s]+/, "")}
             </Text>
           </Pressable>
         </View>
 
-        <Text style={{ color: colors.text, fontSize: 20, paddingTop: 10 }}>
-          {t(lang, "shopping", "filterByShop")}
-        </Text>
-
-        {shopOptions.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginTop: 8, marginBottom: 4 }}
+        <View style={{ paddingHorizontal: 12 }}>
+          <View
+            style={[
+              styles.newItemCard,
+              { backgroundColor: colors.favorite, borderColor: colors.favoriteBorder },
+            ]}
           >
-            <Pressable
-              onPress={() => setFilterShopIds([])}
+            <View style={styles.cardDecoration} pointerEvents="none">
+              <HeartIcon size={130} filled color={colors.pillActive} />
+            </View>
+
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              {t(lang, "favorites", "addFavoriteTitle")}
+            </Text>
+
+            <View
               style={[
-                styles.chip,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                filterShopIds.length === 0 && {
-                  backgroundColor: colors.pillActive,
-                  borderColor: colors.pillActive,
-                },
+                styles.searchRow,
+                { backgroundColor: colors.card, borderColor: colors.favoriteBorder },
               ]}
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: colors.text },
-                  filterShopIds.length === 0 && styles.chipTextActive,
-                ]}
-              >
-                All
-              </Text>
-            </Pressable>
+              <SearchIcon size={18} color={colors.muted} />
+              <TextInput
+                placeholder={t(lang, "favorites", "addFavoritePlaceholder")}
+                placeholderTextColor={colors.muted}
+                value={newText}
+                onChangeText={setNewText}
+                onSubmitEditing={handleAddFavorite}
+                style={[styles.searchInput, { color: colors.text }]}
+              />
+            </View>
 
-            {shopOptions.map((shop) => {
-              const active = filterShopIds.includes(shop._id);
-              return (
-                <Pressable
-                  key={shop._id}
-                  onPress={() => {
-                    setFilterShopIds((prev) =>
-                      prev.includes(shop._id)
-                        ? prev.filter((id) => id !== shop._id)
-                        : [...prev, shop._id],
+            {shopOptions.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={[styles.sectionLabel, { color: colors.text }]}>
+                  {t(lang, "shopping", "shopsForItem")}
+                </Text>
+                <View style={styles.storePillsRow}>
+                  {shopOptions.map((shop) => {
+                    const active = newFavoriteShopIds.includes(shop._id);
+                    return (
+                      <Pressable
+                        key={shop._id}
+                        style={[
+                          styles.storePill,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border,
+                          },
+                          active && {
+                            backgroundColor: colors.pillActive,
+                            borderColor: colors.pillActive,
+                          },
+                        ]}
+                        onPress={() => {
+                          setNewFavoriteShopIds((prev) =>
+                            prev.includes(shop._id)
+                              ? prev.filter((id) => id !== shop._id)
+                              : [...prev, shop._id],
+                          );
+                        }}
+                      >
+                        <StoreIcon
+                          name={shop.name}
+                          size={16}
+                          mono={active}
+                          color="#fff"
+                        />
+                        <Text
+                          style={[
+                            styles.storePillText,
+                            { color: colors.text },
+                            active && styles.storePillTextActive,
+                          ]}
+                        >
+                          {shop.name}
+                        </Text>
+                      </Pressable>
                     );
-                  }}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                    active && {
-                      backgroundColor: colors.pillActive,
-                      borderColor: colors.pillActive,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: colors.text },
-                      active && styles.chipTextActive,
-                    ]}
-                  >
-                    {shop.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-
-            <Pressable
-              onPress={() => {
-                setFilterShopIds((prev) =>
-                  prev.includes("No Shop")
-                    ? prev.filter((id) => id !== "No Shop")
-                    : [...prev, "No Shop"],
-                );
-              }}
-              style={[
-                styles.chip,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                noShopActive && {
-                  backgroundColor: colors.pillActive,
-                  borderColor: colors.pillActive,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: colors.text },
-                  noShopActive && styles.chipTextActive,
-                ]}
-              >
-                No Shop
-              </Text>
-            </Pressable>
-          </ScrollView>
-        )}
-      </View>
-
-      {processedFavorites.length === 0 ? (
-        <View style={[styles.center, { backgroundColor: colors.background }]} />
-      ) : (
-        <ScrollView
-          contentContainerStyle={{ padding: 12, paddingBottom: 24 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {processedFavorites.map((item, index) => {
-            const shopLabel =
-              item.shop && item.shop.length > 0
-                ? item.shop.map((s) => s.name).join(", ")
-                : t(lang, "shopping", "shopsTitle") + " ▾";
-
-            return (
-              <View
-                key={item._id}
-                style={[
-                  styles.row,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.itemText, { color: colors.text }]}>
-                    <Text
-                      style={[styles.itemIndex, { color: colors.pillActive }]}
-                    >
-                      {index + 1}.{" "}
-                    </Text>
-                    {item.text}
-                  </Text>
-
-                  <Pressable
-                    style={[
-                      styles.shopsBtn,
-                      {
-                        backgroundColor: colors.shop,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => setEditingFavoriteId(item._id)}
-                  >
-                    <Text
-                      style={[
-                        styles.shopsBtnText,
-                        { color: colors.secondaryText },
-                      ]}
-                    >
-                      {shopLabel}
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <View style={styles.rowButtons}>
-                  <Pressable
-                    onPress={() => addToShoppingList(item)}
-                    style={[
-                      styles.smallBtn,
-                      {
-                        backgroundColor: colors.reverseText,
-                        borderWidth: 1,
-                        top: 2,
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name="add-shopping-cart"
-                      size={18}
-                      color={colors.text}
-                    />
-                  </Pressable>
-
-                  <Pressable
-                    style={[styles.smallBtn, { backgroundColor: "#7a0202ff" }]}
-                    onPress={() => deleteFavorite(item._id)}
-                  >
-                    <Text style={[styles.smallBtnText, { color: "#fff" }]}>
-                      ✕
-                    </Text>
-                  </Pressable>
+                  })}
                 </View>
               </View>
-            );
-          })}
-        </ScrollView>
-      )}
+            )}
+
+            <Pressable
+              style={[
+                styles.manageCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={() => setManageShopsVisible(true)}
+            >
+              <View
+                style={[
+                  styles.manageCardIcon,
+                  { backgroundColor: colors.innerParts },
+                ]}
+              >
+                <StorefrontIcon size={19} color={colors.pillActive} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.manageCardTitle, { color: colors.text }]}>
+                  {shopOptions.length > 0
+                    ? t(lang, "shopping", "manageShops")
+                    : t(lang, "shopping", "addShops")}
+                </Text>
+                <Text
+                  style={[styles.manageCardSubtitle, { color: colors.muted }]}
+                >
+                  {t(lang, "shopping", "manageShopsSubtitle")}
+                </Text>
+              </View>
+              <ChevronRightIcon size={18} color={colors.muted} />
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.sendBtn,
+                { backgroundColor: colors.pillActive },
+                (!newText.trim() || savingFavorite) && { opacity: 0.6 },
+              ]}
+              onPress={handleAddFavorite}
+              disabled={!newText.trim() || savingFavorite}
+            >
+              <HeartIcon size={18} color="#fff" />
+              <Text style={styles.sendBtnText}>
+                {savingFavorite
+                  ? t(lang, "favorites", "saving")
+                  : t(lang, "favorites", "addFavoriteBtn")}
+              </Text>
+            </Pressable>
+          </View>
+
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: colors.heading, fontSize: 18, marginTop: 16 },
+            ]}
+          >
+            {t(lang, "shopping", "filterByShop")}
+          </Text>
+
+          {shopOptions.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 10, marginBottom: 4 }}
+            >
+              <Pressable
+                onPress={() => setFilterShopIds([])}
+                style={[
+                  styles.filterPill,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                  filterShopIds.length === 0 && {
+                    backgroundColor: colors.pillActive,
+                    borderColor: colors.pillActive,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    { color: colors.text },
+                    filterShopIds.length === 0 && styles.filterPillTextActive,
+                  ]}
+                >
+                  {t(lang, "shopping", "all")}
+                </Text>
+                {filterShopIds.length === 0 && (
+                  <CheckIcon size={12} color="#fff" />
+                )}
+              </Pressable>
+
+              {shopOptions.map((shop) => {
+                const active = filterShopIds.includes(shop._id);
+                return (
+                  <Pressable
+                    key={shop._id}
+                    onPress={() => {
+                      setFilterShopIds((prev) =>
+                        prev.includes(shop._id)
+                          ? prev.filter((id) => id !== shop._id)
+                          : [...prev, shop._id],
+                      );
+                    }}
+                    style={[
+                      styles.filterPill,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                      },
+                      active && {
+                        backgroundColor: colors.pillActive,
+                        borderColor: colors.pillActive,
+                      },
+                    ]}
+                  >
+                    <StoreIcon
+                      name={shop.name}
+                      size={15}
+                      mono={active}
+                      color="#fff"
+                    />
+                    <Text
+                      style={[
+                        styles.filterPillText,
+                        { color: colors.text },
+                        active && styles.filterPillTextActive,
+                      ]}
+                    >
+                      {shop.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+
+              <Pressable
+                onPress={() => {
+                  setFilterShopIds((prev) =>
+                    prev.includes("No Shop")
+                      ? prev.filter((id) => id !== "No Shop")
+                      : [...prev, "No Shop"],
+                  );
+                }}
+                style={[
+                  styles.filterPill,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                  noShopActive && {
+                    backgroundColor: colors.pillActive,
+                    borderColor: colors.pillActive,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    { color: colors.text },
+                    noShopActive && styles.filterPillTextActive,
+                  ]}
+                >
+                  {t(lang, "shopping", "noShop")}
+                </Text>
+              </Pressable>
+            </ScrollView>
+          )}
+        </View>
+
+        <View style={{ paddingHorizontal: 12, paddingTop: 4 }}>
+          {processedFavorites.length === 0 ? (
+            <View style={styles.emptyState} />
+          ) : (
+            processedFavorites.map((item, index) => {
+              const hasShop = !!item.shop && item.shop.length > 0;
+              const shopLabel = hasShop
+                ? item.shop.map((s) => s.name).join(", ")
+                : t(lang, "shopping", "shopsTitle");
+
+              return (
+                <View
+                  key={item._id}
+                  style={[
+                    styles.row,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <View
+                    style={[styles.accentBar, { backgroundColor: colors.pillActive }]}
+                  />
+
+                  <View style={styles.rowContent}>
+                    <View style={styles.gripHandle}>
+                      <GripIcon size={16} color={colors.muted} />
+                    </View>
+
+                    <View
+                      style={[
+                        styles.itemIconCircle,
+                        { backgroundColor: colors.innerParts },
+                      ]}
+                    >
+                      <StoreIcon
+                        name={hasShop ? item.shop[0].name : ""}
+                        size={20}
+                        mono
+                        color={colors.pillActive}
+                      />
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.itemText, { color: colors.text }]}>
+                        <Text
+                          style={[styles.itemIndex, { color: colors.pillActive }]}
+                        >
+                          {index + 1}.{" "}
+                        </Text>
+                        {item.text}
+                      </Text>
+
+                      <Pressable
+                        style={[
+                          styles.shopsBtn,
+                          {
+                            backgroundColor: colors.shop,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                        onPress={() => setEditingFavoriteId(item._id)}
+                      >
+                        {hasShop && (
+                          <StoreIcon
+                            name={item.shop[0].name}
+                            size={13}
+                            mono
+                            color={colors.secondaryText}
+                          />
+                        )}
+                        <Text
+                          style={[
+                            styles.shopsBtnText,
+                            { color: colors.secondaryText },
+                          ]}
+                        >
+                          {shopLabel}
+                        </Text>
+                        <ChevronDownIcon size={11} color={colors.secondaryText} />
+                      </Pressable>
+                    </View>
+
+                    <View style={styles.rowButtons}>
+                      <Pressable
+                        onPress={() => addToShoppingList(item)}
+                        style={[
+                          styles.smallBtn,
+                          { backgroundColor: colors.card, borderColor: colors.border },
+                        ]}
+                      >
+                        <MaterialIcons
+                          name="add-shopping-cart"
+                          size={18}
+                          color={colors.text}
+                        />
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.smallBtn, { backgroundColor: colors.pillActive }]}
+                        onPress={() => deleteFavorite(item._id)}
+                      >
+                        <Text style={styles.smallBtnText}>✕</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
 
       <Modal
         visible={!!editingFavorite}
@@ -771,122 +851,120 @@ export default function FavoritesScreen() {
         animationType="slide"
         onRequestClose={() => setEditingFavoriteId(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {editingFavorite?.text || t(lang, "shopping", "itemFallback")}
-            </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {editingFavorite?.text || t(lang, "shopping", "itemFallback")}
+              </Text>
 
-            <Text
-              style={[styles.modalSubtitle, { color: colors.secondaryText }]}
-            >
-              {t(lang, "shopping", "shopsTitle")}
-            </Text>
+              <Text
+                style={[styles.modalSubtitle, { color: colors.secondaryText }]}
+              >
+                {t(lang, "shopping", "shopsTitle")}
+              </Text>
 
-            <ScrollView style={{ maxHeight: 260, marginTop: 8 }}>
-              {shopOptions.map((shop) => {
-                const itemShopIds =
-                  editingFavorite?.shop?.map((s) => String(s._id)) || [];
-                const active = itemShopIds.includes(shop._id);
+              <ScrollView style={{ maxHeight: 260, marginTop: 8 }}>
+                {shopOptions.map((shop) => {
+                  const itemShopIds =
+                    editingFavorite?.shop?.map((s) => String(s._id)) || [];
+                  const active = itemShopIds.includes(shop._id);
 
-                return (
-                  <View
-                    key={shop._id}
-                    style={[
-                      styles.modalRow,
-                      { borderBottomColor: colors.border },
-                      active && { backgroundColor: colors.card },
-                    ]}
-                  >
-                    <Pressable
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                      }}
-                      onPress={() =>
-                        editingFavorite &&
-                        toggleShopForFavorite(editingFavorite, shop._id)
-                      }
+                  return (
+                    <View
+                      key={shop._id}
+                      style={[styles.modalRow, { borderBottomColor: colors.border }]}
                     >
-                      <Text
-                        style={[styles.modalRowText, { color: colors.text }]}
+                      <Pressable
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
+                        onPress={() =>
+                          editingFavorite &&
+                          toggleShopForFavorite(editingFavorite, shop._id)
+                        }
                       >
-                        {shop.name}
-                      </Text>
-
-                      {active && (
-                        <Text
-                          style={[styles.modalRowText, { color: colors.text }]}
-                        >
-                          ✓
+                        <Text style={[styles.modalRowText, { color: colors.text }]}>
+                          {shop.name}
                         </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                );
-              })}
-            </ScrollView>
 
-            <View style={{ marginTop: 12 }}>
-              <Text style={styles.label}>
-                {t(lang, "shopping", "addNewShopLabel")}
-              </Text>
+                        {active && (
+                          <Text style={[styles.modalRowText, { color: colors.text }]}>
+                            ✓
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </ScrollView>
 
-              <View style={styles.addShopRow}>
-                <TextInput
-                  value={addingShopName}
-                  onChangeText={setAddingShopName}
-                  placeholder={t(lang, "shopping", "newShopPlaceholder")}
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.input,
-                    {
-                      flex: 1,
-                      marginBottom: 0,
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                />
+              <View style={{ marginTop: 12 }}>
+                <Text style={[styles.label, { color: colors.muted }]}>
+                  {t(lang, "shopping", "addNewShopLabel")}
+                </Text>
 
-                <Pressable
-                  style={[
-                    styles.primaryBtn,
-                    {
-                      marginLeft: 8,
-                      paddingHorizontal: 16,
-                      backgroundColor: colors.pillActive,
-                    },
-                  ]}
-                  disabled={addingShopBusy}
-                  onPress={handleAddShopOption}
-                >
-                  <Text style={styles.primaryBtnText}>
-                    {addingShopBusy ? "…" : "+"}
-                  </Text>
-                </Pressable>
+                <View style={styles.addShopRow}>
+                  <TextInput
+                    value={addingShopName}
+                    onChangeText={setAddingShopName}
+                    placeholder={t(lang, "shopping", "newShopPlaceholder")}
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.input,
+                      {
+                        flex: 1,
+                        marginBottom: 0,
+                        backgroundColor: colors.innerParts,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                  />
+
+                  <Pressable
+                    style={[
+                      styles.primaryBtn,
+                      {
+                        marginLeft: 8,
+                        marginTop: 0,
+                        paddingHorizontal: 16,
+                        backgroundColor: colors.pillActive,
+                      },
+                    ]}
+                    disabled={addingShopBusy}
+                    onPress={handleAddShopOption}
+                  >
+                    <Text style={styles.primaryBtnText}>
+                      {addingShopBusy ? "…" : "+"}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
 
-            <Pressable
-              style={[
-                styles.secondaryBtn,
-                {
-                  marginTop: 16,
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={() => setEditingFavoriteId(null)}
-            >
-              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-                {t(lang, "shopping", "close")}
-              </Text>
-            </Pressable>
+              <Pressable
+                style={[
+                  styles.secondaryBtn,
+                  {
+                    marginTop: 16,
+                    backgroundColor: colors.innerParts,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => setEditingFavoriteId(null)}
+              >
+                <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                  {t(lang, "shopping", "close")}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -895,95 +973,102 @@ export default function FavoritesScreen() {
         animationType="slide"
         onRequestClose={() => setManageShopsVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {t(lang, "shopping", "manageShopsTitle")}
-            </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {t(lang, "shopping", "manageShopsTitle")}
+              </Text>
 
-            <ScrollView style={{ maxHeight: 260, marginTop: 8 }}>
-              {shopOptions.map((shop) => (
-                <View
-                  key={shop._id}
-                  style={[
-                    styles.modalRow,
-                    { borderBottomColor: colors.border },
-                  ]}
-                >
-                  <Text style={[styles.modalRowText, { color: colors.text }]}>
-                    {shop.name}
-                  </Text>
-
-                  <Pressable
-                    style={styles.modalDeleteShopBtn}
-                    onPress={() => deleteShopOption(shop._id)}
+              <ScrollView style={{ maxHeight: 260, marginTop: 8 }}>
+                {shopOptions.map((shop) => (
+                  <View
+                    key={shop._id}
+                    style={[styles.modalRow, { borderBottomColor: colors.border }]}
                   >
-                    <Text style={styles.modalDeleteShopText}>❌</Text>
+                    <Text style={[styles.modalRowText, { color: colors.text }]}>
+                      {shop.name}
+                    </Text>
+
+                    <Pressable
+                      style={styles.modalDeleteShopBtn}
+                      onPress={() => deleteShopOption(shop._id)}
+                    >
+                      <Text style={styles.modalDeleteShopText}>❌</Text>
+                    </Pressable>
+                  </View>
+                ))}
+
+                {shopOptions.length === 0 && (
+                  <Text style={{ color: colors.muted, marginTop: 4 }}>
+                    {t(lang, "shopping", "noShopsYet")}
+                  </Text>
+                )}
+              </ScrollView>
+
+              <View style={{ marginTop: 12 }}>
+                <Text style={[styles.label, { color: colors.muted }]}>
+                  {t(lang, "shopping", "addNewShopLabel")}
+                </Text>
+
+                <View style={styles.addShopRow}>
+                  <TextInput
+                    value={addingShopName}
+                    onChangeText={setAddingShopName}
+                    placeholder={t(lang, "shopping", "newShopPlaceholder")}
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.input,
+                      {
+                        flex: 1,
+                        marginBottom: 0,
+                        backgroundColor: colors.innerParts,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                  />
+                  <Pressable
+                    style={[
+                      styles.primaryBtn,
+                      {
+                        marginLeft: 8,
+                        marginTop: 0,
+                        paddingHorizontal: 16,
+                        backgroundColor: colors.pillActive,
+                      },
+                    ]}
+                    disabled={addingShopBusy}
+                    onPress={handleAddShopOption}
+                  >
+                    <Text style={styles.primaryBtnText}>
+                      {addingShopBusy ? "…" : "+"}
+                    </Text>
                   </Pressable>
                 </View>
-              ))}
-
-              {shopOptions.length === 0 && (
-                <Text style={{ color: "#aaa", marginTop: 4 }}>
-                  {t(lang, "shopping", "noShopsYet")}
-                </Text>
-              )}
-            </ScrollView>
-
-            <View style={{ marginTop: 12 }}>
-              <Text style={styles.label}>
-                {t(lang, "shopping", "addNewShopLabel")}
-              </Text>
-
-              <View style={styles.addShopRow}>
-                <TextInput
-                  value={addingShopName}
-                  onChangeText={setAddingShopName}
-                  placeholder="New shop name"
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.input,
-                    {
-                      flex: 1,
-                      marginBottom: 0,
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                />
-                <Pressable
-                  style={[
-                    styles.primaryBtn,
-                    { marginLeft: 8, paddingHorizontal: 16 },
-                  ]}
-                  disabled={addingShopBusy}
-                  onPress={handleAddShopOption}
-                >
-                  <Text style={styles.primaryBtnText}>
-                    {addingShopBusy ? "…" : "+"}
-                  </Text>
-                </Pressable>
               </View>
-            </View>
 
-            <Pressable
-              style={[
-                styles.secondaryBtn,
-                {
-                  marginTop: 16,
-                  backgroundColor: colors.border,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={() => setManageShopsVisible(false)}
-            >
-              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-                {t(lang, "shopping", "close")}
-              </Text>
-            </Pressable>
+              <Pressable
+                style={[
+                  styles.secondaryBtn,
+                  {
+                    marginTop: 16,
+                    backgroundColor: colors.innerParts,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => setManageShopsVisible(false)}
+              >
+                <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+                  {t(lang, "shopping", "close")}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -993,106 +1078,198 @@ export default function FavoritesScreen() {
    STYLES
 ========================= */
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0f0f0fff", paddingTop: 40 },
+  screen: { flex: 1, paddingTop: 20 },
   center: {
     flex: 1,
-    backgroundColor: "#0f0f0fff",
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
   },
-  centerText: { color: "#e0e0e0", textAlign: "center" },
-  headerRow: { paddingHorizontal: 12, paddingBottom: 8 },
-  backText: { color: "#d0d0d0", marginBottom: 4 },
+  centerText: { textAlign: "center" },
+
+  headerRow: { paddingHorizontal: 12, paddingBottom: 10 },
+  backBtn: { flexDirection: "row", alignItems: "center", gap: 10 },
+  backCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backText: { fontSize: 15, fontWeight: "600" },
 
   newItemCard: {
-    marginTop: 8,
-    marginBottom: 12,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: "#323131ff",
-    borderColor: "#030303ff",
+    marginTop: 4,
+    marginBottom: 4,
+    padding: 16,
+    borderRadius: 20,
     borderWidth: 1,
+    position: "relative",
+    overflow: "hidden",
   },
 
-  input: {
-    backgroundColor: "#1a1919",
+  cardDecoration: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    opacity: 0.14,
+    transform: [{ rotate: "-12deg" }],
+  },
+
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 14,
+    maxWidth: "78%",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    lineHeight: 26,
+    fontFamily: "MetropolisBold",
+  },
+
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     borderWidth: 1,
-    borderColor: "#000",
-    paddingHorizontal: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
     paddingVertical: 10,
-    borderRadius: 8,
-    color: "#fff",
+  },
+
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: "800",
     marginBottom: 8,
   },
 
-  label: { color: "#d0d0d0", fontSize: 12, marginBottom: 4 },
-
-  shopsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
-
-  chip: {
+  storePillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  storePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#444",
+  },
+  storePillText: { fontSize: 13, fontWeight: "600" },
+  storePillTextActive: { color: "#fff" },
+
+  manageCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  manageCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  manageCardTitle: { fontSize: 15, fontWeight: "700" },
+  manageCardSubtitle: { fontSize: 12, marginTop: 2 },
+
+  sendBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: 16,
+  },
+  sendBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+
+  filterPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
     marginRight: 8,
-    backgroundColor: "#181818",
   },
-  chipSmall: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#444",
-    backgroundColor: "#181818",
-  },
-  chipText: { color: "#ccc", fontSize: 12 },
-  chipTextActive: { color: "#fff", fontWeight: "700" },
+  filterPillText: { fontSize: 13, fontWeight: "600" },
+  filterPillTextActive: { color: "#fff" },
+
+  emptyState: { minHeight: 120 },
 
   row: {
     flexDirection: "row",
+    alignItems: "stretch",
+    marginTop: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  accentBar: { width: 4 },
+  rowContent: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    marginTop: 6,
-    borderRadius: 8,
-    backgroundColor: "#191919",
-    borderWidth: 1,
-    borderColor: "#151515",
+  },
+  gripHandle: { paddingHorizontal: 4, marginRight: 6 },
+
+  itemIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  itemText: { color: "#f5f5f5", fontSize: 19, marginBottom: 4 },
-  itemIndex: { color: "#9b2929ff", fontWeight: "800" },
+  itemText: { fontSize: 18, marginBottom: 6 },
+  itemIndex: { fontWeight: "800" },
 
   shopsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#444",
-    backgroundColor: "#222",
   },
-  shopsBtnText: { color: "#ccc", fontSize: 11 },
+  shopsBtnText: { fontSize: 11 },
 
   rowButtons: {
     marginLeft: 8,
-    alignItems: "flex-end",
-    justifyContent: "center",
     flexDirection: "row",
-    gap: 10,
+    alignItems: "center",
+    gap: 8,
   },
-
   smallBtn: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 4,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  smallBtnText: { color: "#ffffff", fontWeight: "700", fontSize: 12 },
+  smallBtnText: { color: "#ffffff", fontWeight: "800", fontSize: 14 },
 
   primaryBtn: {
-    backgroundColor: "#171111ff",
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: "center",
@@ -1106,22 +1283,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#ccc",
-    backgroundColor: "#434343",
   },
-  secondaryBtnText: { color: "#e0e0e0", fontWeight: "700" },
+  secondaryBtnText: { fontWeight: "700" },
 
-  manageShopsBtn: {
-    marginTop: 8,
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
+  input: {
     borderWidth: 1,
-    borderColor: "#444",
-    backgroundColor: "#222",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  manageShopsText: { color: "#ddd", fontSize: 12, fontWeight: "600" },
+  label: { fontSize: 12, marginBottom: 4 },
 
   modalOverlay: {
     flex: 1,
@@ -1129,9 +1301,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 16,
   },
-  modalCard: { backgroundColor: "#212121", borderRadius: 16, padding: 16 },
-  modalTitle: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  modalSubtitle: { color: "#ddd", marginTop: 8, fontWeight: "700" },
+  modalCard: { borderRadius: 16, padding: 16 },
+  modalTitle: { fontSize: 18, fontWeight: "800" },
+  modalSubtitle: { marginTop: 8, fontWeight: "700" },
 
   modalRow: {
     flexDirection: "row",
@@ -1139,9 +1311,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#333",
   },
-  modalRowText: { color: "#eee" },
+  modalRowText: {},
 
   addShopRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
 

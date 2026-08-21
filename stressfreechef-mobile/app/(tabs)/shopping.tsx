@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -23,15 +22,30 @@ import {
   Keyboard,
 } from "react-native";
 
+import { useLang } from "../../i18n/LanguageContext";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import { useFocusEffect, useScrollToTop } from "@react-navigation/native";
 import { SwipeListView } from "react-native-swipe-list-view";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { API_BASE, fetchJSON } from "../../lib/api";
 import { t, Lang, LANG_KEY } from "../../i18n/strings";
 import { useTheme } from "../../theme/ThemeContext";
+import { StoreIcon } from "../../components/icons/StoreIcon";
+import {
+  CartHeartIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  GridIcon,
+  HeartIcon,
+  ListPlusIcon,
+  PlusIcon,
+  SearchIcon,
+  StorefrontIcon,
+} from "../../components/icons/UiIcons";
 
 /* =========================
    TYPES
@@ -301,13 +315,14 @@ async function apiDeleteShopOption(token: string, shopId: string) {
 export default function ShoppingScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const listRef = useRef<SwipeListView<ShoppingItem> | null>(null);
   useScrollToTop(listRef as any);
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [lang, setLang] = useState<Lang>("en");
+  const { lang } = useLang();
   const [hasToken, setHasToken] = useState(false);
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [shopOptions, setShopOptions] = useState<ShopOption[]>([]);
@@ -327,10 +342,6 @@ export default function ShoppingScreen() {
   /* =========================
      Effects
   ========================= */
-
-  useEffect(() => {
-    (async () => setLang(await loadLang()))();
-  }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -526,8 +537,8 @@ export default function ShoppingScreen() {
         const token = await getToken();
         if (!token) {
           requireLogin(
-            "loginRequiredFavoritesTitle",
-            "loginRequiredFavoritesMsg",
+            t(lang, "shopping", "loginRequiredFavoritesTitle"),
+            t(lang, "shopping", "loginRequiredFavoritesMsg"),
           );
           return;
         }
@@ -556,8 +567,8 @@ export default function ShoppingScreen() {
         const token = await getToken();
         if (!token) {
           requireLogin(
-            "loginRequiredFavoritesTitle",
-            "loginRequiredFavoritesMsg",
+            t(lang, "shopping", "loginRequiredFavoritesTitle"),
+            t(lang, "shopping", "loginRequiredFavoritesMsg"),
           );
           return;
         }
@@ -665,10 +676,10 @@ export default function ShoppingScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: { item: ShoppingItem; index: number }) => {
-      const shopLabel =
-        item.shop && item.shop.length > 0
-          ? item.shop.map((s) => s.name).join(", ")
-          : `${t(lang, "shopping", "shopsTitle")} ▾`;
+      const hasShop = !!item.shop && item.shop.length > 0;
+      const shopLabel = hasShop
+        ? item.shop.map((s) => s.name).join(", ")
+        : t(lang, "shopping", "shopsTitle");
 
       const favMatch = favoriteItems.find((fav) => isSameFavorite(fav, item));
       const isFavorite = !!favMatch;
@@ -691,8 +702,17 @@ export default function ShoppingScreen() {
               },
             ]}
           >
-            {item.checked ? <Text style={[styles.checkboxIcon]}>✓</Text> : null}
+            {item.checked ? <CheckIcon size={13} color="#fff" /> : null}
           </Pressable>
+
+          <View style={styles.itemIconCircle}>
+            <StoreIcon
+              name={hasShop ? item.shop[0].name : ""}
+              size={22}
+              mono
+              color={colors.pillActive}
+            />
+          </View>
 
           <View style={{ flex: 1 }}>
             <Text
@@ -724,19 +744,31 @@ export default function ShoppingScreen() {
                 setEditingItemId(item._id);
               }}
             >
+              {hasShop && (
+                <StoreIcon
+                  name={item.shop[0].name}
+                  size={13}
+                  mono
+                  color={colors.secondaryText}
+                />
+              )}
               <Text
                 style={[styles.shopsBtnText, { color: colors.secondaryText }]}
               >
                 {shopLabel}
               </Text>
+              <ChevronDownIcon size={11} color={colors.secondaryText} />
             </Pressable>
           </View>
 
-          <Pressable onPress={() => toggleFavoriteForItem(item)}>
-            <FontAwesome
-              name="heart"
+          <Pressable
+            hitSlop={8}
+            onPress={() => toggleFavoriteForItem(item)}
+          >
+            <HeartIcon
               size={22}
-              color={isFavorite ? "#8f0c0cff" : "#5e5c5cff"}
+              filled={isFavorite}
+              color={isFavorite ? "#8f0c0c" : "#9a9a9a"}
             />
           </Pressable>
         </View>
@@ -791,7 +823,12 @@ export default function ShoppingScreen() {
   ========================= */
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: colors.background, paddingTop: insets.top + 12 },
+      ]}
+    >
       <SwipeListView
         listViewRef={(ref) => {
           listRef.current = ref;
@@ -810,6 +847,33 @@ export default function ShoppingScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <>
+            <View style={styles.pageHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.pageTitle, { color: colors.heading }]}>
+                  {t(lang, "shopping", "screenTitle")}
+                </Text>
+              </View>
+
+              <Pressable
+                style={[
+                  styles.headerBadge,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+                onPress={() => {
+                  if (!hasToken) {
+                    Alert.alert(
+                      t(lang, "shopping", "loginRequiredFavoritesTitle"),
+                      t(lang, "shopping", "loginRequiredFavoritesMsg"),
+                    );
+                    return;
+                  }
+                  router.push("/favorites");
+                }}
+              >
+                <CartHeartIcon size={30} cartColor={colors.text} />
+              </Pressable>
+            </View>
+
             <View
               style={[
                 styles.newItemCard,
@@ -817,88 +881,91 @@ export default function ShoppingScreen() {
                   backgroundColor: colors.list,
                   borderWidth: 2,
                   borderColor: colors.extraborder,
-                  borderRadius: 7,
+                  borderRadius: 16,
                 },
               ]}
             >
               <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
+                style={[
+                  styles.searchRow,
+                  { backgroundColor: colors.innerParts, borderColor: colors.border },
+                ]}
               >
-                <Text
-                  style={{
-                    fontFamily: "MetropolisBold",
-                    fontSize: 30,
-                    color: colors.heading,
-                    paddingTop: 10,
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  {t(lang, "shopping", "addNewItemTitle")}
-                </Text>
-
+                <SearchIcon size={18} color={colors.muted} />
+                <TextInput
+                  placeholder={t(lang, "shopping", "addItemPlaceholder")}
+                  placeholderTextColor={colors.muted}
+                  value={newText}
+                  onChangeText={setNewText}
+                  onSubmitEditing={handleAddItem}
+                  style={[styles.searchInput, { color: colors.text }]}
+                />
                 <Pressable
-                  onPress={() => {
-                    if (!hasToken) {
-                      Alert.alert(
-                        t(lang, "shopping", "loginRequiredFavoritesTitle"),
-                        t(lang, "shopping", "loginRequiredFavoritesMsg"),
-                      );
-                      return;
-                    }
-                    router.push("/favorites");
-                  }}
+                  style={[
+                    styles.searchAddBtn,
+                    { backgroundColor: colors.pillActive },
+                  ]}
+                  onPress={handleAddItem}
                 >
-                  <Image
-                    source={{
-                      uri: "https://i.postimg.cc/XJbXPVXV/Chat-GPT-Image-22-2-2026-19-09-36.png",
-                    }}
-                    style={{
-                      width: 75,
-                      height: 75,
-                      bottom: 10,
-                    }}
-                  />
+                  <PlusIcon size={20} color="#fff" />
                 </Pressable>
               </View>
 
-              <TextInput
-                placeholder={t(lang, "shopping", "addItemPlaceholder")}
-                placeholderTextColor="#777"
-                value={newText}
-                onChangeText={setNewText}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.innerParts,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-              />
-
               {hasToken && shopOptions.length > 0 && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={[styles.label, { color: colors.text }]}>
+                <View style={{ marginTop: 16 }}>
+                  <Text style={[styles.sectionLabel, { color: colors.heading }]}>
                     {t(lang, "shopping", "shopsForItem")}
                   </Text>
 
-                  <View style={styles.shopsRow}>
+                  <View style={styles.storePillsRow}>
+                    <Pressable
+                      style={[
+                        styles.storePill,
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        newItemShopIds.length === shopOptions.length && {
+                          backgroundColor: colors.pillActive,
+                          borderColor: colors.pillActive,
+                        },
+                      ]}
+                      onPress={() =>
+                        setNewItemShopIds((prev) =>
+                          prev.length === shopOptions.length
+                            ? []
+                            : shopOptions.map((s) => s._id),
+                        )
+                      }
+                    >
+                      <GridIcon
+                        size={13}
+                        color={
+                          newItemShopIds.length === shopOptions.length
+                            ? "#fff"
+                            : colors.text
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.storePillText,
+                          { color: colors.text },
+                          newItemShopIds.length === shopOptions.length &&
+                            styles.storePillTextActive,
+                        ]}
+                      >
+                        {t(lang, "shopping", "allStores")}
+                      </Text>
+                    </Pressable>
+
                     {shopOptions.map((shop) => {
                       const active = newItemShopIds.includes(shop._id);
                       return (
                         <Pressable
                           key={shop._id}
                           style={[
-                            styles.chipSmall,
-                            {
-                              backgroundColor: colors.innerParts,
-                              borderColor: colors.border,
-                            },
+                            styles.storePill,
+                            { backgroundColor: colors.card, borderColor: colors.border },
                             active && {
-                              backgroundColor: "rgb(155, 28, 28)",
+                              backgroundColor: colors.pillActive,
+                              borderColor: colors.pillActive,
                             },
                           ]}
                           onPress={() => {
@@ -909,11 +976,17 @@ export default function ShoppingScreen() {
                             );
                           }}
                         >
+                          <StoreIcon
+                            name={shop.name}
+                            size={16}
+                            mono={active}
+                            color="#fff"
+                          />
                           <Text
                             style={[
-                              styles.chipText,
+                              styles.storePillText,
                               { color: colors.text },
-                              active && styles.chipTextActive,
+                              active && styles.storePillTextActive,
                             ]}
                           >
                             {shop.name}
@@ -928,29 +1001,46 @@ export default function ShoppingScreen() {
               {hasToken && (
                 <Pressable
                   style={[
-                    styles.manageShopsBtn,
-                    {
-                      backgroundColor: colors.innerParts,
-                      borderColor: colors.border,
-                    },
+                    styles.manageCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
                   ]}
                   onPress={() => setManageShopsVisible(true)}
                 >
-                  <Text
-                    style={[styles.manageShopsText, { color: colors.text }]}
+                  <View
+                    style={[
+                      styles.manageCardIcon,
+                      { backgroundColor: colors.innerParts },
+                    ]}
                   >
-                    {shopOptions.length > 0
-                      ? t(lang, "shopping", "manageShops")
-                      : t(lang, "shopping", "addShops")}
-                  </Text>
+                    <StorefrontIcon size={19} color={colors.pillActive} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[styles.manageCardTitle, { color: colors.text }]}
+                    >
+                      {shopOptions.length > 0
+                        ? t(lang, "shopping", "manageShops")
+                        : t(lang, "shopping", "addShops")}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.manageCardSubtitle,
+                        { color: colors.muted },
+                      ]}
+                    >
+                      {t(lang, "shopping", "manageShopsSubtitle")}
+                    </Text>
+                  </View>
+                  <ChevronRightIcon size={18} color={colors.muted} />
                 </Pressable>
               )}
 
               <Pressable
-                style={[styles.primaryBtn, { backgroundColor: "rgb(0, 0, 0)" }]}
+                style={[styles.sendBtn, { backgroundColor: colors.pillActive }]}
                 onPress={handleAddItem}
               >
-                <Text style={[styles.primaryBtnText, { color: "white" }]}>
+                <ListPlusIcon size={18} color="#fff" />
+                <Text style={styles.sendBtnText}>
                   {t(lang, "shopping", "sendToList")}
                 </Text>
               </Pressable>
@@ -959,7 +1049,10 @@ export default function ShoppingScreen() {
             <View style={{ padding: 12 }}>
               {hasToken && (
                 <Text
-                  style={{ color: colors.text, fontSize: 20, paddingTop: 10 }}
+                  style={[
+                    styles.sectionLabel,
+                    { color: colors.heading, fontSize: 18, marginBottom: 0 },
+                  ]}
                 >
                   {t(lang, "shopping", "filterByShop")}
                 </Text>
@@ -969,13 +1062,13 @@ export default function ShoppingScreen() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  style={{ marginTop: 8, marginBottom: 4 }}
+                  style={{ marginTop: 10, marginBottom: 4 }}
                 >
                   <Pressable
                     onPress={() => setFilterShopIds([])}
                     style={[
-                      styles.chip,
-                      { backgroundColor: colors.card },
+                      styles.filterPill,
+                      { backgroundColor: colors.card, borderColor: colors.border },
                       filterShopIds.length === 0 && {
                         backgroundColor: colors.pillActive,
                         borderColor: colors.pillActive,
@@ -984,13 +1077,16 @@ export default function ShoppingScreen() {
                   >
                     <Text
                       style={[
-                        styles.chipText,
+                        styles.filterPillText,
                         { color: colors.text },
-                        filterShopIds.length === 0 && styles.chipTextActive,
+                        filterShopIds.length === 0 && styles.filterPillTextActive,
                       ]}
                     >
                       {t(lang, "shopping", "all")}
                     </Text>
+                    {filterShopIds.length === 0 && (
+                      <CheckIcon size={12} color="#fff" />
+                    )}
                   </Pressable>
 
                   {shopOptions.map((shop) => {
@@ -1006,16 +1102,25 @@ export default function ShoppingScreen() {
                           );
                         }}
                         style={[
-                          styles.chip,
-                          { backgroundColor: colors.card },
-                          active && styles.chipActive,
+                          styles.filterPill,
+                          { backgroundColor: colors.card, borderColor: colors.border },
+                          active && {
+                            backgroundColor: colors.pillActive,
+                            borderColor: colors.pillActive,
+                          },
                         ]}
                       >
+                        <StoreIcon
+                          name={shop.name}
+                          size={15}
+                          mono={active}
+                          color="#fff"
+                        />
                         <Text
                           style={[
-                            styles.chipText,
+                            styles.filterPillText,
                             { color: colors.text },
-                            active && styles.chipTextActive,
+                            active && styles.filterPillTextActive,
                           ]}
                         >
                           {shop.name}
@@ -1033,17 +1138,20 @@ export default function ShoppingScreen() {
                       );
                     }}
                     style={[
-                      styles.chip,
-                      { backgroundColor: colors.card },
-                      filterShopIds.includes("No Shop") && styles.chipActive,
+                      styles.filterPill,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      filterShopIds.includes("No Shop") && {
+                        backgroundColor: colors.pillActive,
+                        borderColor: colors.pillActive,
+                      },
                     ]}
                   >
                     <Text
                       style={[
-                        styles.chipText,
+                        styles.filterPillText,
                         { color: colors.text },
                         filterShopIds.includes("No Shop") &&
-                          styles.chipTextActive,
+                          styles.filterPillTextActive,
                       ]}
                     >
                       {t(lang, "shopping", "noShop")}
@@ -1286,7 +1394,6 @@ export default function ShoppingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingTop: 20,
     paddingHorizontal: 5,
   },
 
@@ -1349,33 +1456,147 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginRight: 8,
+  pageHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
 
-  chipSmall: {
-    paddingHorizontal: 10,
+  pageTitle: {
+    fontFamily: "MetropolisBold",
+    fontSize: 30,
+    letterSpacing: 0.3,
+  },
+
+  headerBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
     paddingVertical: 4,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 10,
+  },
+
+  searchAddBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+
+  storePillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  storePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
   },
 
-  chipActive: {
-    backgroundColor: "#8b0e0d",
-    borderColor: "#aa2b2a",
+  storePillText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 
-  chipText: {
-    fontSize: 12,
-  },
-
-  chipTextActive: {
+  storePillTextActive: {
     color: "#fff",
+  },
+
+  manageCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+
+  manageCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  manageCardTitle: {
+    fontSize: 15,
     fontWeight: "700",
+  },
+
+  manageCardSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  sendBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: 16,
+  },
+
+  sendBtnText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+
+  filterPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  filterPillTextActive: {
+    color: "#fff",
   },
 
   row: {
@@ -1383,30 +1604,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 10,
     padding: 10,
-    marginTop: 6,
-    borderRadius: 8,
+    marginTop: 8,
+    borderRadius: 14,
     borderWidth: 1,
   },
 
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 2,
     marginRight: 10,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  checkboxIcon: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
+  itemIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(118,1,1,0.10)",
   },
 
   itemText: {
-    fontSize: 19,
-    marginBottom: 4,
+    fontSize: 18,
+    marginBottom: 6,
   },
 
   itemTextChecked: {
@@ -1419,6 +1644,9 @@ const styles = StyleSheet.create({
   },
 
   shopsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1428,13 +1656,6 @@ const styles = StyleSheet.create({
 
   shopsBtnText: {
     fontSize: 11,
-  },
-
-  shopsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 2,
   },
 
   modalOverlay: {
@@ -1487,19 +1708,5 @@ const styles = StyleSheet.create({
   modalDeleteShopText: {
     color: "#fff",
     fontWeight: "700",
-  },
-
-  manageShopsBtn: {
-    marginTop: 8,
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-
-  manageShopsText: {
-    fontSize: 12,
-    fontWeight: "600",
   },
 });
