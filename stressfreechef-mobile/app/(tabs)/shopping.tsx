@@ -847,33 +847,6 @@ export default function ShoppingScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <>
-            <View style={styles.pageHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.pageTitle, { color: colors.heading }]}>
-                  {t(lang, "shopping", "screenTitle")}
-                </Text>
-              </View>
-
-              <Pressable
-                style={[
-                  styles.headerBadge,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-                onPress={() => {
-                  if (!hasToken) {
-                    Alert.alert(
-                      t(lang, "shopping", "loginRequiredFavoritesTitle"),
-                      t(lang, "shopping", "loginRequiredFavoritesMsg"),
-                    );
-                    return;
-                  }
-                  router.push("/favorites");
-                }}
-              >
-                <CartHeartIcon size={30} cartColor={colors.text} />
-              </Pressable>
-            </View>
-
             <View
               style={[
                 styles.newItemCard,
@@ -885,6 +858,33 @@ export default function ShoppingScreen() {
                 },
               ]}
             >
+              <View style={styles.pageHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pageTitle, { color: colors.heading }]}>
+                    {t(lang, "shopping", "screenTitle")}
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={[
+                    styles.headerBadge,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                  onPress={() => {
+                    if (!hasToken) {
+                      Alert.alert(
+                        t(lang, "shopping", "loginRequiredFavoritesTitle"),
+                        t(lang, "shopping", "loginRequiredFavoritesMsg"),
+                      );
+                      return;
+                    }
+                    router.push("/favorites");
+                  }}
+                >
+                  <CartHeartIcon size={26} cartColor={colors.text} />
+                </Pressable>
+              </View>
+
               <View
                 style={[
                   styles.searchRow,
@@ -1460,21 +1460,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingTop: 4,
-    paddingBottom: 12,
+    marginBottom: 14,
   },
 
   pageTitle: {
     fontFamily: "MetropolisBold",
-    fontSize: 30,
+    fontSize: 26,
     letterSpacing: 0.3,
   },
 
   headerBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
